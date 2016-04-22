@@ -37,6 +37,23 @@ void jacob(int, int, int, double, double, double,
 
 /* IMPLEMENTATIONS */
 
+// Newton step d, where DF*d = F
+void newt_d(){
+	
+}
+
+// function F to be zeroed
+void newt_F(){
+	
+}
+
+// jacobian DF
+void newt_DF(){
+	
+}
+
+
+
 /* Given last guess s and solution y, calculate the Newton step d. */
 void newton(int n, int m, int nrk,
             double Ca, double  area, double vlme,
