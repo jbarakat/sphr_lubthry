@@ -28,24 +28,24 @@
 #include "./diff.h"
 
 /* PROTOTYPES */
-void syst_eqn(int,      int, double, double, double*, double *, double *, double *, double *);
-void syst_lhs(int,      int, double, double, double*, double *, double *, double *);
-void syst_lhs(int, int, int, double, double, double*, double *, double *, double &);
-void syst_rhs(int,      int, double, double, double*, double *, double *, double *);
-void syst_rhs(int, int, int, double, double, double*, double *, double *, double &);
+void syst_eqn(int,      int, double, double, double *, double *, double *, double *);
+void syst_lhs(int,      int, double, double, double *, double *, double *);
+void syst_lhs(int, int, int, double, double, double *, double *, double &);
+void syst_rhs(int,      int, double, double, double *, double *, double *);
+void syst_rhs(int, int, int, double, double, double *, double *, double &);
 
 /* IMPLEMENTATIONS */
-// Assemble equation F(f1;f0,g,p) = 0 and calculate Jacobian DF = dF/df1.
+// Assemble equation F(f1;f0,p) = 0 and calculate Jacobian DF = dF/df1.
 //   NOTE: f0 = knowns, f1 = unknowns, g = auxiliary function, p = parameters
-void syst_eqn(int ID, int M, double h, double k, double* p, double *g, double *f0, double *f1, double* F, double *DF){
+void syst_eqn(int ID, int M, double h, double k, double* p, double *f0, double *f1, double* F, double *DF){
 	int m, mi, mj;
 	double Lf1[M], Rf0[M];
 	double df = 0.0001;
 	double f1p[M], Lf1p;
 
 	// assemble left- and right-hand sides
-	syst_lhs(ID, M, h, k, p, g, f1, Lf1);
-	syst_rhs(ID, M, h, k, p, g, f0, Rf0);
+	syst_lhs(ID, M, h, k, p, f1, Lf1);
+	syst_rhs(ID, M, h, k, p, f0, Rf0);
 
 	// assemble function vector F
 	for (m = 0; m < M; m++){
@@ -66,7 +66,7 @@ void syst_eqn(int ID, int M, double h, double k, double* p, double *g, double *f
 				//f1p[mj] += df;
 
 				//// calculate partial derivative (forward difference scheme)
-				//syst_lhs(ID, mi, M, h, k, p, g, f1p, Lf1p);
+				//syst_lhs(ID, mi, M, h, k, p, f1p, Lf1p);
 				//DF[mi*M + mj] = (Lf1p - Lf1[mi])/df;
 
 				/*------ CALCULATE PARTIAL DERIVATIVES ------*/
@@ -81,7 +81,7 @@ void syst_eqn(int ID, int M, double h, double k, double* p, double *g, double *f
 						f1p[mj] += df;
 
 						// calculate partial derivative (forward difference scheme)
-						syst_lhs(ID, mi, M, h, k, p, g, f1p, Lf1p);
+						syst_lhs(ID, mi, M, h, k, p, f1p, Lf1p);
 						DF[mi*M + mj] = (Lf1p - Lf1[mi])/df;
 					}
 					else
@@ -97,7 +97,7 @@ void syst_eqn(int ID, int M, double h, double k, double* p, double *g, double *f
 						f1p[mj] += df;
 
 						// calculate partial derivative (forward difference scheme)
-						syst_lhs(ID, mi, M, h, k, p, g, f1p, Lf1p);
+						syst_lhs(ID, mi, M, h, k, p, f1p, Lf1p);
 						DF[mi*M + mj] = (Lf1p - Lf1[mi])/df;
 					}
 					else
@@ -113,7 +113,7 @@ void syst_eqn(int ID, int M, double h, double k, double* p, double *g, double *f
 						f1p[mj] += df;
 
 						// calculate partial derivative (forward difference scheme)
-						syst_lhs(ID, mi, M, h, k, p, g, f1p, Lf1p);
+						syst_lhs(ID, mi, M, h, k, p, f1p, Lf1p);
 						DF[mi*M + mj] = (Lf1p - Lf1[mi])/df;
 					}
 					else
@@ -125,7 +125,7 @@ void syst_eqn(int ID, int M, double h, double k, double* p, double *g, double *f
 }
 
 // Assemble left-hand side operation (unknowns).
-void syst_lhs(int ID, int M, double h, double k, double* p, double *g, double *f, double *Lf){
+void syst_lhs(int ID, int M, double h, double k, double* p, double *f, double *Lf){
 	int m;
 	if (ID == 0){						/* gravitational spreading of thin film
 													 * over horizontal, planar substrate */
@@ -157,7 +157,7 @@ void syst_lhs(int ID, int M, double h, double k, double* p, double *g, double *f
 	}
 }
 
-void syst_lhs(int ID, int m, int M, double h, double k, double* p, double *g, double *f, double &Lf){
+void syst_lhs(int ID, int m, int M, double h, double k, double* p, double *f, double &Lf){
 	if (ID == 0){						/* gravitational spreading of thin film
 													 * over horizontal, planar substrate */
 		double cf  = p[0] ;	// = (gravitational acceleration)/(kinematic viscosity)
@@ -185,7 +185,7 @@ void syst_lhs(int ID, int m, int M, double h, double k, double* p, double *g, do
 }
 
 // Assemble right-hand side operation (knowns).
-void syst_rhs(int ID, int M, double h, double k, double* p, double *g, double *f, double *Rf){
+void syst_rhs(int ID, int M, double h, double k, double* p, double *f, double *Rf){
 	int m;
 	if (ID == 0){						/* gravitational spreading of thin film
 													 * over horizontal, planar substrate */
@@ -217,7 +217,7 @@ void syst_rhs(int ID, int M, double h, double k, double* p, double *g, double *f
 	}
 }
 
-void syst_rhs(int ID, int m, int M, double h, double k, double* p, double *g, double *f, double &Rf){
+void syst_rhs(int ID, int m, int M, double h, double k, double* p, double *f, double &Rf){
 	if (ID == 0){						/* gravitational spreading of thin film
 													 * over horizontal, planar substrate */
 		double cf  = p[0] ;	// = (gravitational acceleration)/(kinematic viscosity)

@@ -13,6 +13,7 @@
 #include <gsl/gsl_sf_bessel.h>
 #include "../include/syst.h"
 #include "../include/diff.h"
+#include "../include/newt.h"
 
 using namespace std;
 
@@ -35,8 +36,7 @@ int main(){
 	int ID = 0; // gravitational spreading
 	double p[1], g[1];
 	p[0] = 1.0;
-	g[0] = 0.0;
-	syst_eqn(ID, M, dr, dt, p, g, f0, f1, F, DF);
+	syst_eqn(ID, M, dr, dt, p, f0, f1, F, DF);
 
 	for (i = 0; i < M; i++){
 		for (j = 0; j < M; j++){
