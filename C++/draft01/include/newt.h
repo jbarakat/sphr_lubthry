@@ -24,8 +24,7 @@
 #include <lapacke.h>
 #include <cblas.h>
 #include <math.h>
-#include "ode.h"
-#include "bcond.h"
+#include "./syst.h"
 
 /* PROTOTYPES */
 void newton(int, int, int, double, double, double,
@@ -39,6 +38,7 @@ void jacob(int, int, int, double, double, double,
 
 // Newton step d, where DF*d = F
 void newt_d(){
+	
 	
 }
 

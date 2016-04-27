@@ -11,14 +11,49 @@
 #include <gsl/gsl_sf_trig.h>
 #include <gsl/gsl_sf_log.h>
 #include <gsl/gsl_sf_bessel.h>
-#include "../include/diff.h"
 #include "../include/syst.h"
+#include "../include/diff.h"
 
 using namespace std;
 
 int main(){
 	int i, j, k, l;
-	int m = 10000;
+	int N = 10;
+	int M = 10;
+	double dr = 2*M_PI/double(M);
+	double dt = dr/6.0;
+
+	double t[N], r[M];
+	double f0[M], f1[M];
+	double F[M], DF[M*M];
+	for (i = 0; i < M; i++){
+		r [i] = i*dr;
+		f0[i] =      gsl_sf_cos(r[i]);
+		f1[i] = 1.01*gsl_sf_cos(r[i]);
+	}
+	
+	int ID = 0; // gravitational spreading
+	double p[1], g[1];
+	p[0] = 1.0;
+	g[0] = 0.0;
+	syst_eqn(ID, M, dr, dt, p, g, f0, f1, F, DF);
+
+	for (i = 0; i < M; i++){
+		for (j = 0; j < M; j++){
+			if (DF[i*M + j] < 0)
+				printf( "%.4f ", DF[i*M+j]);
+			else
+				printf(" %.4f ", DF[i*M+j]);
+		}
+		printf("\n");
+	}
+	
+	return 0;
+}
+
+void testDiff(){
+	int i, j, k, l;
+	int m = 1000;
 	vector<double> t(m), cost(m), sint(m);
 	vector<double> dsint(m), dcost(m);
 
@@ -56,5 +91,4 @@ int main(){
 
 	cout << error << endl;
 
-	return 0;
 }
