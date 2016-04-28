@@ -1,6 +1,5 @@
 /* DIFFERENCE OPERATORS
- *  Generate spatial difference operators for thin-film evolution
- *  on a uniform, radial grid r, where r[m] = m*h.
+ *  Generate spatial difference operators on a uniform mesh.
  *  All difference operators are second-order in the grid spacing
  *  h, i.e. the error is O(h^2).
  *
@@ -170,7 +169,7 @@ void diff_d4(int m, int M, double h, double* f, double &df){
 	}
 }
 
-// Laplacian
+// Laplacian in axisymmetric, cylindrical polars
 void diff_l2(int M, double h, double* f, double *lf){
 	int m;
 	double r;
@@ -208,7 +207,7 @@ void diff_l2(int m, int M, double h, double* f, double &lf){
 	}
 }
 
-// modified Bessel operator
+// modified Bessel operator in axisymmetric, cylindrical polars
 void diff_b2(int M, double h, double* f, double *bf){
 	int m;
 	double r;
@@ -229,7 +228,7 @@ void diff_b2(int M, double h, double* f, double *bf){
 	}
 }
 
-// gradient of modified Bessel operator
+// gradient of modified Bessel operator in axisymmetric, cylindrical polars
 void diff_b3(int M, double h, double* f, double *bf){
 	int m;
 	double r, r2;
@@ -252,7 +251,7 @@ void diff_b3(int M, double h, double* f, double *bf){
 	}
 }
 
-// Laplacian of modified Bessel operator
+// Laplacian of modified Bessel operator in axisymmetric, cylindrical polars
 void diff_b4(int M, double h, double* f, double *bf){
 	int m;
 	double r, r2, r3;

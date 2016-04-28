@@ -34,36 +34,51 @@ void newt_d(int, int, double, double, double *, double *, double *, double *, do
 /* IMPLEMENTATIONS */
 
 // Iterate on f1 until F(f1;f0,p) = 0
-void newt_iter(int ID, int M, double h, double k, double *p, double *f0, double *f1){
+//  si = initial guess for f1
+//  sf = final output for f1 after Newton iteration
+void newt_iter(int ID, int M, double h, double k, double *p, double *f0, double *si, double *sf){
 	int    i, j, m;
-	double f1k[M];
-	double F[M], DF[M], d[M];
-	double Fk[M], DFk[M], dk[M];
+	double f1[M], f1k[M];
+	double F[M], DF[M*M], d[M];
+	double Fk[M], DFk[M*M], dk[M];
 
-	const int MAXITER = 1000;
-	const double TOL  = 1e-6;
+	const int MAXITER  = 1000;
+	const double FTOL  = 1e-6;
+	const double DTOL  = 1e-6;
 
 	// initialize
-	int    iter  = 0;			// iteration counter
-	double Fnorm = 1.0;		// 2-norm of F
-	double nu    = 1.0;		// fraction of full Newton step
+	int    iter   = 0  ;		// iteration counter
+	double Fnorm  = 1.0;		// 2-norm of F
+	double Fknorm = 1.0;		// 2-norm of Fk (a dummy variable)
+	double dnorm  = 1.0;		// 2-norm of d
+	double nu     = 1.0;		// fraction of full Newton step
+
+	for (m = 0; m < M; m++){
+		f1[m] = si[m];
+	}
 
 	// iterate until F(f1;f0,p) = 0
-	while (iter < MAXITER && fnorm > TOL){
-		// generate F, DF, and d
+	while (iter < MAXITER && Fnorm > FTOL && dnorm > DTOL){
+		// generate F and DF and
+		// solve the linearized system DF*d = F for d
 		newt_d(ID, M, h, k, p, f0, f1, F, DF, d);
 
-		// calculate 2-norm of F
-		Fnorm = 0;
-		for (m = 0; m < M; m++)
+		// calculate 2-norm of F and d
+		Fnorm = 0.0;
+		dnorm = 0.0;
+		for (m = 0; m < M; m++){
 			Fnorm += F[m]*F[m];
+			dnorm += d[m]*d[m];
+		}
 		Fnorm = sqrt(Fnorm);
+		dnorm = sqrt(dnorm);
 
 		// use a finite search process to determine
 		// the fraction of the full Newton step
 		for (i = 0; i < 5; i++){
 			nu = pow(2.0, -i);
-
+			
+			// take fraction of the full Newton step 
 			for (m = 0; m < M; m++){
 				f1k[m] = f1[m] - nu*d[j];
 			}
@@ -83,6 +98,14 @@ void newt_iter(int ID, int M, double h, double k, double *p, double *f0, double 
 		// update f1
 		for (m = 0; m < M; m++)
 			f1[m] = f1k[m];
+		
+		cout << "iter = " << iter << ", fnorm = " << Fnorm << ", p = " << nu << endl;
+		iter++;
+	}
+
+	// store solution
+	for (m = 0; m < M; m++){
+		sf[m] = f1[m];
 	}
 }
 
@@ -105,7 +128,7 @@ void newt_d(int ID, int M, double h, double k, double *p, double *f0, double *f1
 			DF[i*M + j] = DFp[i*M + j];
 		}
 	}
-	
+
 	/* solve the linear system using Gaussian elimination 
 	 * (LAPACK's DGETRF and DGETRS subroutines) */
 	char   trans = 'N';				// form of the system of equations

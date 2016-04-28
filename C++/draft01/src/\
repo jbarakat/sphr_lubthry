@@ -19,51 +19,9 @@ using namespace std;
 
 int main(){
 	int i, j, k, l;
-	int m, n;
-	int N = 10;
-	int M = 10;
-	
-	double dr = 2*M_PI/double(M-1);
-	double dt = dr/6.0;
-
-	double t[N], r[M];
-	double f0[M], f1[M];
-	double F[M], DF[M*M];
-	for (i = 0; i < M; i++){
-		r [i] = i*dr;
-		f0[i] =      gsl_sf_cos(r[i]);
-		f1[i] = 1.1*gsl_sf_cos(r[i]);
-	}
-	
-	int ID = 1; // gravitational spreading
-	double p[1], g[1];
-	p[0] = 1.0;
-	syst_eqn(ID, M, dr, dt, p, f0, f1, F, DF);
-
-	for (i = 0; i < M; i++){
-		for (j = 0; j < M; j++){
-			if (DF[i*M + j] < 0)
-				printf( "%.4f ", DF[i*M+j]);
-			else
-				printf(" %.4f ", DF[i*M+j]);
-		}
-		printf("\n");
-	}
-
-	return 0;
-}
-
-
-
-
-
-
-void testGravitySpreading(){
-	int i, j, k, l;
-	int m, n;
 	int N = 10;
 	int M = 100;
-	
+
 	/*---- GRAVITATIONAL SPREADING ----*/
 	/* SCALINGS:
 	 *  h(r,t) scaled by H0 (initial drop height)
@@ -76,11 +34,9 @@ void testGravitySpreading(){
 	 *  With these scalings, no parameters
 	 *  appear in the problem (self-similar).
 	 */
-	int ID = 1; // gravitational spreading
-	double r[M], t[N];
+	int ID = 0; // gravitational spreading
 	double h[M*N], hi[M];
 	double h0[M], h1[M];
-	double si[M], sf[M];
 
 	// set parameter to unity (parameter-free problem)
 	double p[1];
@@ -92,49 +48,20 @@ void testGravitySpreading(){
 	// time and grid step sizes
 	// (grid step size will change at each timestep
 	//  in order to conserve volume)
-	double dr = R0/double(M-1);
+	double dr = R0/double(M);
 	double dt = dr/6.0;
-
-	// time domain discretization
-	for (n = 0; n < N; n++){
-		t[n] = n*dt;
-	}
-
-	// space domain discretization (radial coordinate)
-	for (m = 0; m < M; m++){
-		r[m] = m*dr;
-	}
 	
-	// initial thickness profile
-	for (m = 0; m < M; m++){
-		hi[m] = gsl_sf_cos(M_PI*r[m]/2.0);
-	}
-
-	// TEST NEWTON SOLVER USING INITIAL PROFILE
-	for (m = 0; m < M; m++){
-		h0[m] = hi[m];
-		h1[m] = hi[m];
-		
-		// guess s for h1
-		si[m] = h0[m];
-		sf[m] = h0[m];
-	}
-
-	newt_iter(ID, M, dr, dt, p, h0, si, sf);
+	// initial profile
 
 	// update dr
 	// (will have to have clever algorithm here
 	//  to ensure that the grid points are not
 	//  too widely spaced apart)
+
+
 	
+	return 0;
 }
-
-
-
-
-
-
-
 
 void testSyst(){
 	int i, j, k, l;
