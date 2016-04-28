@@ -10,8 +10,11 @@
  *  t		[input]			independent coordinate (ranges from 0 to 1)
  *  s		[input]			guess (an mn-vector)
  *  y		[input]			solution [an (m-1)n-vector]
+ *  u0  [input]			solution at current timestep t_n
+ *  u1  [input]			guess for solution at next timestep t_{n+1}
  *  F		[output]		function to be zeroed
  *  DF	[output]		Jacobian
+ *  d   [output]    full Newton step
  */
 
 #ifndef NEWTON_H
@@ -29,18 +32,18 @@
 using namespace std;
 
 /* PROTOTYPES */
-void newt_d(int, int, double, double, double *, double *, double *, double *, double *, double*);
+void newt_d(bool, int, int, int, int, double, double, double*, double *, double *, double *, double *, double *, double *, double *);
+void newt_iter(bool sprs, int id, int o, int n, int M, double h, double k, double *p, double *g0, double *g1, double *u0, double *si, double *sf);
 
 /* IMPLEMENTATIONS */
 
-// Iterate on f1 until F(f1;f0,p) = 0
-//  si = initial guess for f1
-//  sf = final output for f1 after Newton iteration
-void newt_iter(int ID, int M, double h, double k, double *p, double *f0, double *si, double *sf){
+// Iterate on u1 until F(u1;u0,p) = 0
+//  si = initial guess for u1
+//  sf = final output for u1 after Newton iteration
+void newt_iter(bool sprs, int id, int o, int n, int M, double h, double k, double *p, double *g0, double *g1, double *u0, double *si, double *sf){
 	int    i, j, m;
-	double f1[M], f1k[M];
-	double F[M], DF[M*M], d[M];
-	double Fk[M], DFk[M*M], dk[M];
+	double u1 [M], F [M], DF[M*M], d[M];
+	double u1p[M], Fp[M];
 
 	const int MAXITER  = 1000;
 	const double FTOL  = 1e-6;
@@ -49,19 +52,19 @@ void newt_iter(int ID, int M, double h, double k, double *p, double *f0, double 
 	// initialize
 	int    iter   = 0  ;		// iteration counter
 	double Fnorm  = 1.0;		// 2-norm of F
-	double Fknorm = 1.0;		// 2-norm of Fk (a dummy variable)
+	double Fpnorm = 1.0;		// 2-norm of Fp (a dummy variable)
 	double dnorm  = 1.0;		// 2-norm of d
 	double nu     = 1.0;		// fraction of full Newton step
 
 	for (m = 0; m < M; m++){
-		f1[m] = si[m];
+		u1[m] = si[m];
 	}
 
-	// iterate until F(f1;f0,p) = 0
+	// iterate until F(u1;u0,p) = 0
 	while (iter < MAXITER && Fnorm > FTOL && dnorm > DTOL){
 		// generate F and DF and
 		// solve the linearized system DF*d = F for d
-		newt_d(ID, M, h, k, p, f0, f1, F, DF, d);
+		newt_d(sprs, id, o, n, M, h, k, p, g0, g1, u0, u1, F, DF, d);
 
 		// calculate 2-norm of F and d
 		Fnorm = 0.0;
@@ -80,24 +83,25 @@ void newt_iter(int ID, int M, double h, double k, double *p, double *f0, double 
 			
 			// take fraction of the full Newton step 
 			for (m = 0; m < M; m++){
-				f1k[m] = f1[m] - nu*d[j];
+				u1p[m] = u1[m] - nu*d[m];
 			}
 			
-			// recalculate Fk using f1k
-			newt_d(ID, M, h, k, p, f0, f1k, Fk, DFk, dk);
+			// recalculate Fp using u1p
+			syst_F(id, o, n, M, h, k, p, g0, g1, u0, u1p, Fp);
 			
-			Fknorm = 0;
+			Fpnorm = 0;
 			for (m = 0; m < M; m++)
-				Fknorm += Fk[m]*Fk[m];
-			Fknorm = sqrt(Fknorm);
+				Fpnorm += Fp[m]*Fp[m];
+			Fpnorm = sqrt(Fpnorm);
 			
-			if (Fknorm < Fnorm)
+			if (Fpnorm < Fnorm)
 				break;
 		}
 
-		// update f1
+
+		// update u1
 		for (m = 0; m < M; m++)
-			f1[m] = f1k[m];
+			u1[m] = u1p[m];
 		
 		cout << "iter = " << iter << ", fnorm = " << Fnorm << ", p = " << nu << endl;
 		iter++;
@@ -105,20 +109,18 @@ void newt_iter(int ID, int M, double h, double k, double *p, double *f0, double 
 
 	// store solution
 	for (m = 0; m < M; m++){
-		sf[m] = f1[m];
+		sf[m] = u1[m];
 	}
 }
 
 
 // Compute the full Newton step d, where DF*d = F
-//  f0 = solution at previous timestep
-//  f1 = guess for solution at new timestep
-void newt_d(int ID, int M, double h, double k, double *p, double *f0, double *f1, double *F, double *DF, double *d){
+void newt_d(bool sprs, int id, int o, int n, int M, double h, double k, double *p, double *g0, double *g1, double *u0, double *u1, double *F, double *DF, double *d){
 	int i, j, info;
 	double Fp[M], DFp[M*M];
 	
-	// given f0 and f1, generate F (function) and DF (Jacobian)
-	syst_eqn(ID, M, h, k, p, f0, f1, Fp, DFp);
+	// given u0 and u1, generate F (function) and DF (Jacobian)
+	syst_F_DF(sprs, id, o, n, M, h, k, p, g0, g1, u0, u1, Fp, DFp);
 
 	// copy F and DF to output
 	// (Fp will be transformed by LAPACK operations)

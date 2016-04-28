@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <vector>
 #include <string>
+#include <gsl/gsl_sf_exp.h>
 #include <gsl/gsl_sf_trig.h>
 #include <gsl/gsl_sf_log.h>
 #include <gsl/gsl_sf_bessel.h>
@@ -21,37 +22,61 @@ int main(){
 	int i, j, k, l;
 	int m, n;
 	int N = 10;
-	int M = 10;
+	int M = 20;
+	double p[1];	 // parameters
+	double g0[M];	 // source
+	double g1[M];	 // source
+	double u[M*N]; // function
+	bool sprs = true;
 	
-	double dr = 2*M_PI/double(M-1);
-	double dt = dr/6.0;
+	double dx = 1.0/double(M-1);
+	double dt = dx/6.0;
 
-	double t[N], r[M];
-	double f0[M], f1[M];
+	double t[N], x[M];
+	double u0[M], u1[M];
 	double F[M], DF[M*M];
-	for (i = 0; i < M; i++){
-		r [i] = i*dr;
-		f0[i] =      gsl_sf_cos(r[i]);
-		f1[i] = 1.1*gsl_sf_cos(r[i]);
-	}
-	
-	int ID = 1; // gravitational spreading
-	double p[1], g[1];
-	p[0] = 1.0;
-	syst_eqn(ID, M, dr, dt, p, f0, f1, F, DF);
 
-	for (i = 0; i < M; i++){
-		for (j = 0; j < M; j++){
-			if (DF[i*M + j] < 0)
-				printf( "%.4f ", DF[i*M+j]);
-			else
-				printf(" %.4f ", DF[i*M+j]);
+	// space and time grids
+	for (m = 0; m < M; m++){
+		x [m] = m*dx;
+	}
+
+	for (n = 0; n < N; n++)
+		t [n] = n*dt;
+	
+	p[0] = 1.0; // diffusion coefficient
+
+	// Test problem: Heat equation w/Dirichlet BCs.
+	int Lid = 0; // equation type
+	int o  = 2; // order of spatial operator
+	double ui[M], uf[M];
+
+	// initial condition
+	for (m = 0; m < M; m++)
+		u0[m] =     gsl_sf_sin(M_PI*x[m]);
+
+	// time advance
+	for (n = 0; n < N; n++){
+		u[n*N + m] = u0[m]; 
+
+		for (m = 0; m < M; m++){
+			g0[m] = ((M_PI*M_PI) - 1.0)*gsl_sf_exp(-t[n  ])*gsl_sf_sin(M_PI*x[m]);
+			g1[m] = ((M_PI*M_PI) - 1.0)*gsl_sf_exp(-t[n+1])*gsl_sf_sin(M_PI*x[m]);
+			ui[m] = u0[m];
+			uf[m] = ui[m];
 		}
-		printf("\n");
+
+		newt_iter(sprs, Lid, o, n, M, dx, dt, p, g0, g1, u0, ui, uf);
+
+		for(m = 0; m < M; m++){
+			u0[m] = uf[m];
+		}
 	}
 
 	return 0;
 }
+
+
 
 
 
@@ -76,7 +101,7 @@ void testGravitySpreading(){
 	 *  With these scalings, no parameters
 	 *  appear in the problem (self-similar).
 	 */
-	int ID = 1; // gravitational spreading
+	int id = 1; // gravitational spreading
 	double r[M], t[N];
 	double h[M*N], hi[M];
 	double h0[M], h1[M];
@@ -120,7 +145,7 @@ void testGravitySpreading(){
 		sf[m] = h0[m];
 	}
 
-	newt_iter(ID, M, dr, dt, p, h0, si, sf);
+	//newt_iter(id, M, dr, dt, p, h0, si, sf);
 
 	// update dr
 	// (will have to have clever algorithm here
@@ -138,24 +163,31 @@ void testGravitySpreading(){
 
 void testSyst(){
 	int i, j, k, l;
+	int m, n;
 	int N = 10;
 	int M = 10;
-	double dr = 2*M_PI/double(M);
+	
+	double dr = 2*M_PI/double(M-1);
 	double dt = dr/6.0;
 
 	double t[N], r[M];
-	double f0[M], f1[M];
+	double u0[M], u1[M];
 	double F[M], DF[M*M];
 	for (i = 0; i < M; i++){
 		r [i] = i*dr;
-		f0[i] =      gsl_sf_cos(r[i]);
-		f1[i] = 1.01*gsl_sf_cos(r[i]);
+		u0[i] =      gsl_sf_cos(r[i]);
+		u1[i] = 1.1*gsl_sf_cos(r[i]);
 	}
 	
-	int ID = 0; // gravitational spreading
-	double p[1], g[1];
+	int id = 0; // equation type
+	int o  = 2; // order of spatial operator
+	double p[1];// parameters
+	double g[M];// source
+	bool sprs = true;
 	p[0] = 1.0;
-	syst_eqn(ID, M, dr, dt, p, f0, f1, F, DF);
+	for (m = 0; m < M; m++) g[m] = 0.0;
+//	syst_eqn(id, M, dr, dt, p, u0, u1, F, DF);
+	syst_F_DF(sprs, id, o, n, M, dr, dt, p, g, g, u0, u1, F, DF);
 
 	for (i = 0; i < M; i++){
 		for (j = 0; j < M; j++){
@@ -167,6 +199,12 @@ void testSyst(){
 		printf("\n");
 	}
 	
+	double si[M], sf[M];
+	for (m = 0; m < M; m++){
+		si[m] = u1[m];
+		sf[m] = 0.0;
+	}
+	newt_iter(sprs, id, o, n, M, dr, dt, p, g, g, u0, si, sf);
 }
 
 void testDiff(){
