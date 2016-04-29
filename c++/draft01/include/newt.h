@@ -103,7 +103,7 @@ void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, doub
 		for (m = 0; m < M; m++)
 			u1[m] = u1p[m];
 		
-		cout << "iter = " << iter << ", fnorm = " << Fnorm << ", p = " << nu << endl;
+		//cout << "iter = " << iter << ", fnorm = " << Fnorm << ", p = " << nu << endl;
 		iter++;
 	}
 

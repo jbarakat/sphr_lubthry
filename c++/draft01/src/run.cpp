@@ -27,13 +27,14 @@ int main(){
 	int N = 40;
 	int M = 100;
 	double xmax = 1.0;
-	double tmax = 0.01;
+	double tmax = 2.0;
 	double dx = xmax/double(M-1);
 	double dt = tmax/double(N-1);
 
 	// parameters
-	double p[1];	 // parameters
+	double p[10];			 // parameters
 				 p[0] = 1.0; // diffusion coefficient
+				 p[1] = 1.0; // volume of drop
 	
 	// exploit sparsity in iterative solve?
 	bool sprs = true;
@@ -45,7 +46,7 @@ int main(){
 	/*----------- SOLVE -----------*/
 
 	// Test problem: Heat equation w/Dirichlet BCs.
-	int Lid = 1; // operator type
+	int Lid = 2; // operator type
 	int o   = 2; // order of spatial operator
 	double mu  = 0.5;
 	if (Lid > 0)
@@ -63,7 +64,14 @@ int main(){
 		}
 
 		// spreading problems: initial profile is a cosine
+		if (Lid == 2){
+			u0[m] =     gsl_sf_cos(M_PI*x/2.0);
+		}
 	}
+	
+	// drop volume
+	p[1] = 2.0*(M_PI -2.0)/(M_PI*M_PI);
+	double q = p[1];
 
 	// time advance
 	for (n = 0; n < N; n++){
@@ -72,6 +80,16 @@ int main(){
 		}
 
 		intg_timeStep(sprs, Lid, o, n, M, dx, dt, p, u0, u1);
+
+		// recompute dx if spreading
+		if (Lid > 1){
+			double sum = 0.0;
+			for (m = 1; m < M-1; m++){
+				sum += m*u1[m];
+			}
+			dx = sqrt(q/sum);
+			cout << dx << endl;
+		}
 
 		for(m = 0; m < M; m++){
 			u0[m] = u1[m];

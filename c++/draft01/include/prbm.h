@@ -80,7 +80,7 @@ void prbm_L(char LR, int Lid, int o, int n, int m, int M, double h, double k,
 		if (Lid == 1)
 			Lu = cf*l2u;		// axisymmetric diffusion
 		if (Lid == 2)
-			Lu = cf*u[m]*u[m]*(u[m]*l2u/3.0 + d1u*d1u); // axisymmetric spreading (gravity)
+			Lu = cf*u[m]*u[m]*(u[m]*l2u/3.0 + d1u*d1u); // axisymmetric spreading due to gravity
 	}
 	if (o == 4){
 	}
@@ -94,8 +94,14 @@ void prbm_L(char LR, int Lid, int o, int n, int m, int M, double h, double k,
 	// boundary nodes
 	if (o > 1){
 		if (LR == 'L' && (m == 0 || m == M-1)){
-			Lug = u[m];		// Dirichlet BC
-			Lug = d1u;		// Neumann BC
+			if (m == 0){
+				Lug = u[m];		// Dirichlet BC
+				Lug = d1u;		// Neumann BC
+			}
+			if (m == M-1){
+				Lug = u[m];		// Dirichlet BC
+			//	Lug = d1u;		// Neumann BC
+			}
 		}
 		if (LR == 'R' && (m == 0 || m == M-1))
 			Lug = 0.0 ;
