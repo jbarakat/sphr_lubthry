@@ -42,10 +42,13 @@ void diff_l2(     int, double, double*, double *);
 void diff_l2(int, int, double, double*, double &);
 
 void diff_b2(     int, double, double*, double *);
+void diff_b2(int, int, double, double*, double &);
 
 void diff_b3(     int, double, double*, double *);
+void diff_b3(int, int, double, double*, double &);
 
 void diff_b4(     int, double, double*, double *);
+void diff_b4(int, int, double, double*, double &);
 
 /* IMPLEMENTATIONS */
 
@@ -228,6 +231,13 @@ void diff_b2(int M, double h, double* f, double *bf){
 	}
 }
 
+void diff_b2(int m, int M, double h, double* f, double &bf){
+	double l2f;
+	
+	diff_l2(m, M, h, f, l2f);
+	bf = -f[m] + l2f;
+}
+
 // gradient of modified Bessel operator in axisymmetric, cylindrical polars
 void diff_b3(int M, double h, double* f, double *bf){
 	int m;
@@ -248,6 +258,24 @@ void diff_b3(int M, double h, double* f, double *bf){
 		r     = m*h;
 		r2    = r*r;
 		bf[m] = -d1f[m] - d1f[m]/r2 + d2f[m]/r + d3f[m];
+	}
+}
+
+void diff_b3(int m, int M, double h, double* f, double &bf){
+	double r, r2;
+	double d1f, d2f, d3f;
+	
+	// calculate derivatives
+	diff_d1(m, M, h, f, d1f);
+	diff_d2(m, M, h, f, d2f);
+	diff_d3(m, M, h, f, d3f);
+
+	if (m == 0)
+		bf = -d1f + (3.0/2.0)*d3f;
+	else {	
+		r  = m*h;
+		r2 = r*r;
+		bf = -d1f - d1f/r2 + d2f/r + d3f;
 	}
 }
 
@@ -272,6 +300,25 @@ void diff_b4(int M, double h, double* f, double *bf){
 		r     = m*h;
 		r2    = r*r;
 		bf[m] = -d2f[m] + (1.0 - r2)*d1f[m]/r3 - d2f[m]/r2 + 2.0*d3f[m]/r + d4f[m];
+	}
+}
+
+void diff_b4(int m, int M, double h, double* f, double &bf){
+	double r, r2, r3;
+	double d1f, d2f, d3f, d4f;
+	
+	// calculate derivatives
+	diff_d1(m, M, h, f, d1f);
+	diff_d2(m, M, h, f, d2f);
+	diff_d3(m, M, h, f, d3f);
+	diff_d4(m, M, h, f, d4f);
+
+	if (m == 0)
+		bf = -2.0*d2f + (8.0/3.0)*d4f;
+	else {
+		r  = m*h;
+		r2 = r*r;
+		bf = -d2f + (1.0 - r2)*d1f/r3 - d2f/r2 + 2.0*d3f/r + d4f;
 	}
 }
 

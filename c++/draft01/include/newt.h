@@ -32,15 +32,15 @@
 using namespace std;
 
 /* PROTOTYPES */
-void newt_d(bool, int, int, int, int, double, double, double*, double *, double *, double *, double *, double *, double *, double *);
-void newt_iter(bool sprs, int id, int o, int n, int M, double h, double k, double *p, double *g0, double *g1, double *u0, double *si, double *sf);
+void newt_d(bool, int, int, int, int, double, double, double*, double *, double *, double *, double *, double *);
+void newt_iter(bool, int, int, int, int, double, double, double *, double *, double *, double *);
 
 /* IMPLEMENTATIONS */
 
 // Iterate on u1 until F(u1;u0,p) = 0
 //  si = initial guess for u1
 //  sf = final output for u1 after Newton iteration
-void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, double *p, double *g0, double *g1, double *u0, double *si, double *sf){
+void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, double *p, double *u0, double *si, double *sf){
 	int    i, j, m;
 	double u1 [M], F [M], DF[M*M], d[M];
 	double u1p[M], Fp[M];
@@ -64,7 +64,7 @@ void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, doub
 	while (iter < MAXITER && Fnorm > FTOL && dnorm > DTOL){
 		// generate F and DF and
 		// solve the linearized system DF*d = F for d
-		newt_d(sprs, Lid, o, n, M, h, k, p, g0, g1, u0, u1, F, DF, d);
+		newt_d(sprs, Lid, o, n, M, h, k, p, u0, u1, F, DF, d);
 
 		// calculate 2-norm of F and d
 		Fnorm = 0.0;
@@ -87,7 +87,7 @@ void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, doub
 			}
 			
 			// recalculate Fp using u1p
-			syst_F(Lid, o, n, M, h, k, p, g0, g1, u0, u1p, Fp);
+			syst_F(Lid, o, n, M, h, k, p, u0, u1p, Fp);
 			
 			Fpnorm = 0;
 			for (m = 0; m < M; m++)
@@ -115,12 +115,12 @@ void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, doub
 
 
 // Compute the full Newton step d, where DF*d = F
-void newt_d(bool sprs, int Lid, int o, int n, int M, double h, double k, double *p, double *g0, double *g1, double *u0, double *u1, double *F, double *DF, double *d){
+void newt_d(bool sprs, int Lid, int o, int n, int M, double h, double k, double *p, double *u0, double *u1, double *F, double *DF, double *d){
 	int i, j, info;
 	double Fp[M], DFp[M*M];
 	
 	// given u0 and u1, generate F (function) and DF (Jacobian)
-	syst_F_DF(sprs, Lid, o, n, M, h, k, p, g0, g1, u0, u1, Fp, DFp);
+	syst_F_DF(sprs, Lid, o, n, M, h, k, p, u0, u1, Fp, DFp);
 
 	// copy F and DF to output
 	// (Fp will be transformed by LAPACK operations)
