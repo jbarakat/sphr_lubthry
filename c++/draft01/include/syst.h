@@ -1,12 +1,6 @@
 /* DIFFERENCE SYSTEM
- *  General parabolic equation:
- *          du
- *   F(u) = -- - L(u) - g = 0
- *          dt
- *  where L is an operator in one space dimension and g is a source term.
- *  In general, u = u(t,x;p) where t is time, x is the spatial coordinate,
- *  and p is a vector of parameters.
- *  Time is discretized using the trapezoidal method (Crank-Nicholson scheme).
+ *  Assemble the difference system using the trapezoidal method (Crank
+ *  -Nicholson scheme).
  *
  * REFERENCES
  *  Lopez et al, J Coll Int Sci (1976) - gravitational spreading
@@ -36,17 +30,16 @@
 #include <lapacke.h>
 #include <cblas.h>
 #include <math.h>
-#include "./diff.h"
+#include "./prbm.h"
 
 /* PROTOTYPES */
 void syst_F_DF(bool, int, int, int,           int, double, double, double *, double *, double *, double *, double *, double *, double *);
 void syst_F   (      int, int, int, int,      int, double, double, double *, double *, double *, double *, double *, double &          );
 void syst_F   (      int, int, int,           int, double, double, double *, double *, double *, double *, double *, double *          );
-void syst_lhs (      int, int, int, int,      int, double, double, double *,           double *,           double *, double &          );
-void syst_rhs (      int, int, int, int,      int, double, double, double *, double *,           double *,           double &          );
 void syst_DF  (      int, int, int, int, int, int, double, double, double *,           double *,           double *, double *, double &);
 void syst_DF  (bool, int, int, int,           int, double, double, double *,           double *,           double *, double *, double *);
-void syst_L   (char, int, int, int, int,      int, double, double, double *,           double *,                     double &          );
+void syst_lhs (      int, int, int, int,      int, double, double, double *,           double *,           double *, double &          );
+void syst_rhs (      int, int, int, int,      int, double, double, double *, double *,           double *,           double &          );
 
 /* IMPLEMENTATIONS */
 
@@ -95,28 +88,6 @@ void syst_F(int Lid, int o, int n, int M, double h, double k,
 		syst_F(Lid, o, n, m, M, h, k, p, g0, g1, u0, u1, Fm);	
 		F[m] = Fm;
 	}
-}
-
-// left-hand side (unknowns) at (tn,xm)
-void syst_lhs(int Lid, int o, int n, int m, int M, double h, double k,
-              double *p, double *g1, double *u1, double &lhs){
-	double cf = 0.5*k;	// trapezoidal weight
-	double Lu1;					// spatial difference operator
-	char   LR = 'L';
-	
-	syst_L(LR, Lid, o, n+1, m, M, h, k, p, u1, Lu1);
-	lhs = u1[m] - cf*(Lu1 + g1[m]);
-}
-
-// right-hand side operator (knowns) at (tn,xm)
-void syst_rhs(int Lid, int o, int n, int m, int M, double h, double k,
-              double *p, double *g0, double *u0, double &rhs){
-	double cf = 0.5*k;	// trapezoidal weight
-	double Lu0;					// spatial difference operator
-	char   LR = 'R';
-	
-	syst_L(LR, Lid, o, n  , m, M, h, k, p, u0, Lu0);
-	rhs = u0[m] + cf*(Lu0 + g0[m]);
 }
 
 // partial derivative dF_i/du1_j
@@ -189,57 +160,26 @@ void syst_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
 	}
 }
 
-// spatial difference operator L(u) at (tn,xm)
-//  NOTE: this is the only function that depends on Lid (problem type)
-void syst_L(char LR, int Lid, int o, int n, int m, int M, double h, double k, 
-						double *p, double *u, double &Lu){
-	double cf           ; // coefficient
-	double d1u          ;	// first -order spatial difference operators
-	double d2u, l2u, b2u;	// second-     
-	double d3u, l3u, b3u;	// third -     
-	double d4u, l4u, b4u;	// fourth-     
-
-	/* Heat equation in one dimension with constant diffusivity
-	 * with Dirichlet boundary conditions. */
-	if (Lid == 0){
-		// difference operators
-		diff_d2(m, M, h, u, d2u);
-
-		// parameters
-		cf = p[0];						// diffusion coefficient (constant)
-
-		// heat equation operator
-		Lu = d2u;
-
-		if (LR == 'L' && (m == 0 || m == M-1))
-			Lu = u[m];
-		if (LR == 'R' && (m == 0 || m == M-1))
-			Lu = 0.0 ;
-	}
-
-	/* Axisymmetric spreading of a thin film over a horizontal,
-	 * planar substrate due to gravity. */
-	if (Lid == 1){
-		// difference operators
-		diff_d1(m, M, h, u, d1u);
-		diff_l2(m, M, h, u, l2u);
-
-		// parameters
-		cf = p[0];						/* spreading coefficient cf = rho*g/mu, where
-													 *  rho = fluid density
-													 *  mu  = fluid viscosity
-													 *  g   = acceleration due to gravity */
-		
-		// gravity-spreading operator
-		Lu = cf*u[m]*u[m]*(u[m]*l2u/3.0 + d1u*d1u);
+// left-hand side (unknowns) at (tn,xm)
+void syst_lhs(int Lid, int o, int n, int m, int M, double h, double k,
+              double *p, double *g1, double *u1, double &lhs){
+	double cf = 0.5*k;	// trapezoidal weight
+	double Lu1;					// spatial difference operator
+	char   LR = 'L';
 	
-		// STILL NEED BOUNDARY CONDITIONS HERE 
-		// STILL NEED BOUNDARY CONDITIONS HERE 
-		// STILL NEED BOUNDARY CONDITIONS HERE 
-		// STILL NEED BOUNDARY CONDITIONS HERE 
-		// STILL NEED BOUNDARY CONDITIONS HERE 
+	prbm_L(LR, Lid, n+1, m, M, h, k, p, u1, Lu1);
+	lhs = u1[m] - cf*(Lu1 + g1[m]);
+}
 
-	}
+// right-hand side operator (knowns) at (tn,xm)
+void syst_rhs(int Lid, int o, int n, int m, int M, double h, double k,
+              double *p, double *g0, double *u0, double &rhs){
+	double cf = 0.5*k;	// trapezoidal weight
+	double Lu0;					// spatial difference operator
+	char   LR = 'R';
+	
+	prbm_L(LR, Lid, n  , m, M, h, k, p, u0, Lu0);
+	rhs = u0[m] + cf*(Lu0 + g0[m]);
 }
 
 #endif
