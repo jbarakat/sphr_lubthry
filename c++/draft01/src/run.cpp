@@ -17,99 +17,73 @@
 
 using namespace std;
 
+void init(int, int, int, int, double, double *);
+
 int main(){
 	int i, j, k, l;
 	int m, n;
-	
-	/*----------- SETUP -----------*/
 	
 	// setup time and space domains
 	int N = 40;
 	int M = 100;
 	double xmax = 1.0;
-	double tmax = 2.0;
+	double tmax = 0.01;
 	double dx = xmax/double(M-1);
 	double dt = tmax/double(N-1);
 
 	// parameters
-	double p[10];			 // parameters
-				 p[0] = 1.0; // diffusion coefficient
-				 p[1] = 1.0; // volume of drop
-	
-	// exploit sparsity in iterative solve?
-	bool sprs = true;
+	double p[10];						 	// parameters
+				 p[0] = 1.0;			 	// diffusion coefficient
+				 p[1] = 1.0;				// concavity coefficient
+	bool sprs = true;					// sparsity indicator
+	string dir = "../output";	// output directory
+	string fn = "data";				// output file name
+	int nw = 4 ;							// number of timesteps to write
 
-	// solution vector	
-	vector<double> u;
-	double u0[M], u1[M];
-	
-	/*----------- SOLVE -----------*/
+	int Lid = 2;							// refer to prbm.h for ID definitions
+	int D   = 2;						 	// dimensions in space
+	int o   = 4;							// order of spatial operator
 
-	// Test problem: Heat equation w/Dirichlet BCs.
-	int Lid = 2; // operator type
-	int o   = 2; // order of spatial operator
-	double mu  = 0.5;
-	if (Lid > 0)
-		mu = 0.0;
-	double sig = 0.05;
+	double u0[M];							// initial condition
+	vector<double> u;					// solution vector
 
-	// initial condition
-	for (m = 0; m < M; m++){
-		double x = m*dx;
+	// initialize
+	init(Lid, D, o, M, dx, u0);
 
-		// diffusion problems: intial profile is sine wave or Gaussian
-		if (Lid == 0 || Lid == 1){
-			u0[m] =     gsl_sf_sin(M_PI*x);
-			u0[m] =     gsl_sf_exp(-(x - mu)*(x - mu)/(sig*sig))/(sqrt(2.0*M_PI*sig*sig));
-		}
+	// evolve system in time
+	intg_timeEvol(sprs, Lid, D, o, N, M, dx, dt, p, u0, u);
 
-		// spreading problems: initial profile is a cosine
-		if (Lid == 2){
-			u0[m] =     gsl_sf_cos(M_PI*x/2.0);
-		}
-	}
-	
-	// drop volume
-	p[1] = 2.0*(M_PI -2.0)/(M_PI*M_PI);
-	double q = p[1];
-
-	// time advance
-	for (n = 0; n < N; n++){
-		for (m = 0; m < M; m++){
-			u.push_back(u0[m]);
-		}
-
-		intg_timeStep(sprs, Lid, o, n, M, dx, dt, p, u0, u1);
-
-		// recompute dx if spreading
-		if (Lid > 1){
-			double sum = 0.0;
-			for (m = 1; m < M-1; m++){
-				sum += m*u1[m];
-			}
-			dx = sqrt(q/sum);
-			cout << dx << endl;
-		}
-
-		for(m = 0; m < M; m++){
-			u0[m] = u1[m];
-		}
-	}
-	
-	/*-------- WRITE TO FILE -------*/
-	string dir = "../output";
-	string fn = "data";
-
-	for (n = 0; n < N; n++){
-		if (n % 10 == 0){
-			for (m = 0; m < M; m++){
-				u0[m] = u[n*M + m];
-			}
-			write(dir, fn, n, M, dx, dt, u0);
-		}
-		else
-			continue;
-	}
+	// write to file
+	write(dir, fn, nw, N, M, dx, dt, u.data());
 
 	return 0;
 }
+
+void init(int Lid, int D, int o, int M, double h, double *u0){
+	int m;
+	double x;
+	double mu, sig, sig2;
+	sig  = 0.05;
+	sig2 = sig*sig;
+
+	for (m = 0; m < M; m++){
+		x = m*h;
+		if (o == 2){
+			if (Lid == 0){	// diffusion of Gaussian source
+				if (D == 1) mu = 0.5;
+				if (D == 2) mu = 0.0;
+				u0[m] = gsl_sf_exp(-(x - mu)*(x - mu)/sig2)/(sqrt(2.0*M_PI*sig2));
+			}
+			if (Lid == 1){	// gravitational spreading of drop
+				if (D == 1) u0[m] = gsl_sf_sin(M_PI*x    );
+				if (D == 2) u0[m] = gsl_sf_cos(M_PI*x/2.0);
+			}
+		}
+		if (o == 4){
+			if (Lid == 2){	// penetration of rigid sphere through flat interface
+				u0[m] = 0.0;
+			}
+		}
+	}
+}
+

@@ -34,12 +34,12 @@
 #include "./diff.h"
 
 /* PROTOTYPES */
-void prbm_L(char, int, int, int, int, int, double, double, double *, double *, double &);
+void prbm_L(char, int, int, int, int, int, int, double, double, double *, double *, double &);
 
 /* IMPLEMENTATIONS */
 
 // compute L[u(t,x)] + g(t,x) at (tn,xm)
-void prbm_L(char LR, int Lid, int o, int n, int m, int M, double h, double k, 
+void prbm_L(char LR, int Lid, int D, int o, int n, int m, int M, double h, double k, 
 						double *p, double *u, double &Lug){
 	double cf, cf2, cf3 ; // coefficients
 	double d1u          ;	// first -order spatial difference operators
@@ -66,23 +66,57 @@ void prbm_L(char LR, int Lid, int o, int n, int m, int M, double h, double k,
 	// trapezoidal weight
 	double w = 0.5*k;
 	
-	// parameter
-	cf = p[0];	// diffusivity (constant)
+	// parameters
+	cf  = p[0];		// diffusivity (constant)
+	cf2 = p[1];		// curvature of lower boundary
 			
 	// source
 	g = ((M_PI*M_PI) - 1.0)*gsl_sf_exp(-t)*gsl_sf_sin(M_PI*x);
 	g = 0.0;
 
-	// spatial difference operator
+	/* SECOND-ORDER SPATIAL OPERATORS
+	 *	Lid = 0 : diffusion (Laplacian operator)
+	 *  Lid = 1 : gravitational spreading
+	 */
 	if (o == 2){
-		if (Lid == 0)
-			Lu = cf*d2u;		// linear diffusion
-		if (Lid == 1)
-			Lu = cf*l2u;		// axisymmetric diffusion
-		if (Lid == 2)
-			Lu = cf*u[m]*u[m]*(u[m]*l2u/3.0 + d1u*d1u); // axisymmetric spreading due to gravity
+		if (D == 1){			// 1-D on a line
+			if (Lid == 0)
+				Lu = cf*d2u;
+//			if (Lid == 1)
+		}
+		if (D == 2){			// 1-D w/azimuthal symmetry about x = 0
+			if (Lid == 0)
+				Lu = cf*l2u;
+			if (Lid == 1)
+				Lu = cf*u[m]*u[m]*(u[m]*l2u/3.0 + d1u*d1u);
+		}
 	}
+
+	/* FOURTH-ORDER SPATIAL OPERATORS
+	 *  Lid = 0 : capillary spreading
+	 *  Lid = 1 : gravity-capillary spreading
+	 *  Lid = 2 : penetration of rigid sphere through initially flat interface
+	 *  Lid = 3 : drainage of thin film over rigid sphere
+	 */
 	if (o == 4){
+//		if (D == 1){
+//		}
+		if (D == 2){			// 1-D w/azimuthal symmetry about x = 0
+//			if (Lid == 0)
+//			if (Lid == 1)
+			if (Lid == 2){
+				// REVISE THIS LATER
+				double us  = 1.0 - t + 0.5*cf2*x*x;	// approximation (parabola)
+				double f   = u[m] + us;
+				double d1f = d1u + cf2*x;						// approximation (parabola)
+				double f2  = f*f;
+				double f3  = f2*f;
+				double V   = 1.0 + f3*b4u/3.0 + f2*b3u*d1f;		// axial velocity at free surface
+				double U   = -f2*b3u/2.0;											// radial velocity at free surface
+
+				Lu = V - U*d1u;																// kinematic condition
+			}
+		}
 	}
 			
 	// interior nodes
@@ -92,6 +126,9 @@ void prbm_L(char LR, int Lid, int o, int n, int m, int M, double h, double k,
 		Lug = u[m] + w*(Lu + g);
 	
 	// boundary nodes
+	// NEED TO PASS INDICATOR FUNCTION FOR TYPE OF BCs AT EACH BOUNDARY
+	// NEED TO PASS INDICATOR FUNCTION FOR TYPE OF BCs AT EACH BOUNDARY
+	// NEED TO PASS INDICATOR FUNCTION FOR TYPE OF BCs AT EACH BOUNDARY
 	if (o > 1){
 		if (LR == 'L' && (m == 0 || m == M-1)){
 			if (m == 0){
@@ -100,7 +137,7 @@ void prbm_L(char LR, int Lid, int o, int n, int m, int M, double h, double k,
 			}
 			if (m == M-1){
 				Lug = u[m];		// Dirichlet BC
-			//	Lug = d1u;		// Neumann BC
+				Lug = d1u;		// Neumann BC
 			}
 		}
 		if (LR == 'R' && (m == 0 || m == M-1))
@@ -115,7 +152,7 @@ void prbm_L(char LR, int Lid, int o, int n, int m, int M, double h, double k,
 			if (m == 1)
 				Lug = d3u;	// symmetry requirement
 			if (m == M-2){
-				Lug = d1u;		// Neumann BC (NOT SURE IF THIS IS CORRECT???
+				Lug = d1u;		// Neumann BC (NOT SURE IF THIS IS CORRECT)???
 			}
 		}
 		if (LR == 'R' && (m == 1 || m == M-2))

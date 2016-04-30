@@ -33,18 +33,18 @@
 #include "./prbm.h"
 
 /* PROTOTYPES */
-void syst_F_DF(bool, int, int, int,           int, double, double, double *, double *, double *, double *, double *);
-void syst_F   (      int, int, int, int,      int, double, double, double *, double *, double *, double &          );
-void syst_F   (      int, int, int,           int, double, double, double *, double *, double *, double *          );
-void syst_DF  (      int, int, int, int, int, int, double, double, double *,           double *, double *, double &);
-void syst_DF  (bool, int, int, int,           int, double, double, double *,           double *, double *, double *);
-void syst_lhs (      int, int, int, int,      int, double, double, double *,           double *, double &          );
-void syst_rhs (      int, int, int, int,      int, double, double, double *, double *,           double &          );
+void syst_F_DF(bool, int, int, int, int,           int, double, double, double *, double *, double *, double *, double *);
+void syst_F   (      int, int, int, int, int,      int, double, double, double *, double *, double *, double &          );
+void syst_F   (      int, int, int, int,           int, double, double, double *, double *, double *, double *          );
+void syst_DF  (      int, int, int, int, int, int, int, double, double, double *,           double *, double *, double &);
+void syst_DF  (bool, int, int, int, int,           int, double, double, double *,           double *, double *, double *);
+void syst_lhs (      int, int, int, int, int,      int, double, double, double *,           double *, double &          );
+void syst_rhs (      int, int, int, int, int,      int, double, double, double *, double *,           double &          );
 
 /* IMPLEMENTATIONS */
 
 // assemble F and DF for all xm at fixed tn
-void syst_F_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
+void syst_F_DF(bool sprs, int Lid, int D, int o, int n, int M, double h, double k,
 	             double *p, double *u0, double *u1, double *F, double *DF){
 	int m;
 	double Fm, lhsm, rhsm;
@@ -52,8 +52,8 @@ void syst_F_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
 
 	// calculate F
 	for (m = 0; m < M; m++){
-		syst_lhs(Lid, o, n, m, M, h, k, p, u1, lhsm);	
-		syst_rhs(Lid, o, n, m, M, h, k, p, u0, rhsm);	
+		syst_lhs(Lid, D, o, n, m, M, h, k, p, u1, lhsm);	
+		syst_rhs(Lid, D, o, n, m, M, h, k, p, u0, rhsm);	
 		Fm   = lhsm - rhsm;
 
 		lhs[m] = lhsm;
@@ -62,7 +62,7 @@ void syst_F_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
 	}
 	
 	// calculate DF
-	syst_DF(sprs, Lid, o, n, M, h, k, p, u1, lhs, DFm);
+	syst_DF(sprs, Lid, D, o, n, M, h, k, p, u1, lhs, DFm);
 	for (m = 0; m < M*M; m++){
 		DF[m] = DFm[m];
 	}
@@ -70,28 +70,28 @@ void syst_F_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
 
 // parabolic operator F(u) at (tn,xm)
 // time difference using the trapezoidal method (Crank-Nicholson)
-void syst_F(int Lid, int o, int n, int m, int M, double h, double k,
+void syst_F(int Lid, int D, int o, int n, int m, int M, double h, double k,
             double *p, double *u0, double *u1, double &F){
 	double lhs, rhs;
 
-	syst_lhs(Lid, o, n, m, M, h, k, p, u1, lhs);	
-	syst_rhs(Lid, o, n, m, M, h, k, p, u0, rhs);	
+	syst_lhs(Lid, D, o, n, m, M, h, k, p, u1, lhs);	
+	syst_rhs(Lid, D, o, n, m, M, h, k, p, u0, rhs);	
 	F   = lhs - rhs;
 }
 
 // parabolic operator F(u) at for all xm at fixed tn
-void syst_F(int Lid, int o, int n, int M, double h, double k,
+void syst_F(int Lid, int D, int o, int n, int M, double h, double k,
             double *p, double *u0, double *u1, double *F){
 	int m;
 	double Fm;
 	for (m = 0; m < M; m++){
-		syst_F(Lid, o, n, m, M, h, k, p, u0, u1, Fm);	
+		syst_F(Lid, D, o, n, m, M, h, k, p, u0, u1, Fm);	
 		F[m] = Fm;
 	}
 }
 
 // partial derivative dF_i/du1_j
-void syst_DF(int Lid, int o, int n, int mi, int mj, int M, double h, double k,
+void syst_DF(int Lid, int D, int o, int n, int mi, int mj, int M, double h, double k,
              double *p, double *u1, double *lhs, double &DF){
 	int m;
 	double u1p[M];
@@ -103,13 +103,13 @@ void syst_DF(int Lid, int o, int n, int mi, int mj, int M, double h, double k,
 	u1p[mj] += du1;
 
 	// calculate partial derivative by forward differences
-	syst_lhs(Lid, o, n, mi, M, h, k, p, u1p, lhsp);	
+	syst_lhs(Lid, D, o, n, mi, M, h, k, p, u1p, lhsp);	
 	DF = (lhsp - lhs[mi])/du1;
 }
 
 // Jacobian matrix DF = dF/du1 (all xmi, xmj)
 //  NOTE: sprs = indicator function
-void syst_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
+void syst_DF(bool sprs, int Lid, int D, int o, int n, int M, double h, double k,
              double *p, double *u1, double *lhs, double *DF){
 	int mi, mj;
 	double DFij;
@@ -119,7 +119,7 @@ void syst_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
 		/*------  WITHOUT EXPLOITING SPARSITY  ------*/
 		for (mi = 0; mi < M; mi++){			// element of F
 			for (mj = 0; mj < M; mj++){		// element of u
-				syst_DF(Lid, o, n, mi, mj, M, h, k, p, u1, lhs, DFij);
+				syst_DF(Lid, D, o, n, mi, mj, M, h, k, p, u1, lhs, DFij);
 				DF[mi*M + mj] = DFij;
 			}
 		}
@@ -151,7 +151,7 @@ void syst_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
 					 	     && mj < mi+3 && mj > mi-3)
 					 	  ))
 					)
-						syst_DF(Lid, o, n, mi, mj, M, h, k, p, u1, lhs, DFij);
+						syst_DF(Lid, D, o, n, mi, mj, M, h, k, p, u1, lhs, DFij);
 					else
 						DFij = 0.0;
 				DF[mi*M + mj] = DFij;
@@ -161,22 +161,22 @@ void syst_DF(bool sprs, int Lid, int o, int n, int M, double h, double k,
 }
 
 // left-hand side (unknowns) at (tn,xm)
-void syst_lhs(int Lid, int o, int n, int m, int M, double h, double k,
+void syst_lhs(int Lid, int D, int o, int n, int m, int M, double h, double k,
               double *p, double *u1, double &lhs){
 	double Lu1;					// = u1 - L(u1) + g1
 	char   LR = 'L';
 	
-	prbm_L(LR, Lid, o, n+1, m, M, h, k, p, u1, Lu1);
+	prbm_L(LR, Lid, D, o, n+1, m, M, h, k, p, u1, Lu1);
 	lhs = Lu1;
 }
 
 // right-hand side operator (knowns) at (tn,xm)
-void syst_rhs(int Lid, int o, int n, int m, int M, double h, double k,
+void syst_rhs(int Lid, int D, int o, int n, int m, int M, double h, double k,
               double *p, double *u0, double &rhs){
 	double Lu0;					// = u0 + L(u0) + g0
 	char   LR = 'R';
 	
-	prbm_L(LR, Lid, o, n  , m, M, h, k, p, u0, Lu0);
+	prbm_L(LR, Lid, D, o, n  , m, M, h, k, p, u0, Lu0);
 	rhs = Lu0;
 }
 

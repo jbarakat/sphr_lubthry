@@ -1,6 +1,5 @@
 /* WRITE FILE
- *  Write .dat file containing the abscissa and solution vectors.
- * WRITE TO FILE
+ *  Write data file containing the abscissa and solution vectors.
  *
  * REFERENCES
  *  N/A
@@ -23,11 +22,12 @@ using namespace std;
 
 /* PROTOTYPES */
 void write(string, string, int, int, double, double, double *);
+void write(string, string, int, int, int, double, double, double *);
 
 /* IMPLEMENTATIONS */
 
 // Write output to file.
-void write(string dir, string fn, int n, int M, double h, double k, double *u){
+void write(string dir, string fn, int n, int M, double h, double k, double *uw){
 	int m;
 	int width = 12;
 	int tacc = 4;
@@ -56,7 +56,7 @@ void write(string dir, string fn, int n, int M, double h, double k, double *u){
 	for (m = 0; m < M; m++){
 		ostringstream xx, uu;
 		xx << fixed << setprecision(xacc) << setw(width) << m*h;
-		uu << fixed << setprecision(uacc) << setw(width) << u[m];
+		uu << fixed << setprecision(uacc) << setw(width) << uw[m];
 		
 		line = xx.str() + uu.str();
 		file << line << endl;
@@ -64,6 +64,21 @@ void write(string dir, string fn, int n, int M, double h, double k, double *u){
 	file.close();
 
 	cout << "Output written to " << path << "." << endl;
+}
+
+void write(string dir, string fn, int nw, int N, int M, double h, double k, double *u){
+	int n, m;
+	double uw[M];
+
+	for (n = 0; n < N; n++){
+		if (n % nw == 0){
+			for (m = 0; m < M; m++)
+				uw[m] = u[n*M + m];
+			write(dir, fn, n, M, h, k, uw);
+		}
+		else
+			continue;
+	}
 }
 
 

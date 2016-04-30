@@ -32,15 +32,15 @@
 using namespace std;
 
 /* PROTOTYPES */
-void newt_d(bool, int, int, int, int, double, double, double*, double *, double *, double *, double *, double *);
-void newt_iter(bool, int, int, int, int, double, double, double *, double *, double *, double *);
+void newt_d   (bool, int, int, int, int, int, double, double, double *, double *, double *, double *, double *, double *);
+void newt_iter(bool, int, int, int, int, int, double, double, double *, double *, double *, double *);
 
 /* IMPLEMENTATIONS */
 
 // Iterate on u1 until F(u1;u0,p) = 0
 //  si = initial guess for u1
 //  sf = final output for u1 after Newton iteration
-void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, double *p, double *u0, double *si, double *sf){
+void newt_iter(bool sprs, int Lid, int D, int o, int n, int M, double h, double k, double *p, double *u0, double *si, double *sf){
 	int    i, j, m;
 	double u1 [M], F [M], DF[M*M], d[M];
 	double u1p[M], Fp[M];
@@ -64,7 +64,7 @@ void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, doub
 	while (iter < MAXITER && Fnorm > FTOL && dnorm > DTOL){
 		// generate F and DF and
 		// solve the linearized system DF*d = F for d
-		newt_d(sprs, Lid, o, n, M, h, k, p, u0, u1, F, DF, d);
+		newt_d(sprs, Lid, D, o, n, M, h, k, p, u0, u1, F, DF, d);
 
 		// calculate 2-norm of F and d
 		Fnorm = 0.0;
@@ -87,7 +87,7 @@ void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, doub
 			}
 			
 			// recalculate Fp using u1p
-			syst_F(Lid, o, n, M, h, k, p, u0, u1p, Fp);
+			syst_F(Lid, D, o, n, M, h, k, p, u0, u1p, Fp);
 			
 			Fpnorm = 0;
 			for (m = 0; m < M; m++)
@@ -115,12 +115,12 @@ void newt_iter(bool sprs, int Lid, int o, int n, int M, double h, double k, doub
 
 
 // Compute the full Newton step d, where DF*d = F
-void newt_d(bool sprs, int Lid, int o, int n, int M, double h, double k, double *p, double *u0, double *u1, double *F, double *DF, double *d){
+void newt_d(bool sprs, int Lid, int D, int o, int n, int M, double h, double k, double *p, double *u0, double *u1, double *F, double *DF, double *d){
 	int i, j, info;
 	double Fp[M], DFp[M*M];
 	
 	// given u0 and u1, generate F (function) and DF (Jacobian)
-	syst_F_DF(sprs, Lid, o, n, M, h, k, p, u0, u1, Fp, DFp);
+	syst_F_DF(sprs, Lid, D, o, n, M, h, k, p, u0, u1, Fp, DFp);
 
 	// copy F and DF to output
 	// (Fp will be transformed by LAPACK operations)
@@ -158,11 +158,15 @@ void newt_d(bool sprs, int Lid, int o, int n, int M, double h, double k, double 
 		d[i] = Fp[i];
 	}
 
-//	//// LATER, IMPLEMENT BROYDEN'S UPDATE
-//	//// -- note that Broyden shouldn't be used too many times in sequence
-//	//// -- near the solution, Broyden's method becomes inaccurate
-//	//// -- forward differences miiiight be inaccurate near the solution as well..
-//	  //    (will need to use central difference)
+	/* NOTE: Could also use Broyden's method to update Jacobian DF.
+	 * The current implementation simply recalculates DF at each
+	 * Newton iteration using finite differences (if this becomes
+	 * prohibitively expensive, it might be wise to apply Broyden's
+	 * method instead). Cautionary warnings:
+	 * - Broyden's method should not be used too many times in
+	 *   sequence.
+	 * - near the solution, Broyden's method becomes inaccurate.
+	 */
 }
 
 #endif
