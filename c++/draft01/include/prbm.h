@@ -34,12 +34,12 @@
 #include "./diff.h"
 
 /* PROTOTYPES */
-void prbm_L(char, int, int, int, int, int, int, double, double, double *, double *, double &);
+void prbm_L(char, int, int, int, int, int, int, int, double, double, double *, double *, double &);
 
 /* IMPLEMENTATIONS */
 
 // compute L[u(t,x)] + g(t,x) at (tn,xm)
-void prbm_L(char LR, int Lid, int D, int o, int n, int m, int M, double h, double k, 
+void prbm_L(char LR, int Lid, int dim, int ord, int var, int n, int m, int M, double h, double k, 
 						double *p, double *u, double &Lug){
 	double cf, cf2, cf3 ; // coefficients
 	double d1u          ;	// first -order spatial difference operators
@@ -78,13 +78,13 @@ void prbm_L(char LR, int Lid, int D, int o, int n, int m, int M, double h, doubl
 	 *	Lid = 0 : diffusion (Laplacian operator)
 	 *  Lid = 1 : gravitational spreading
 	 */
-	if (o == 2){
-		if (D == 1){			// 1-D on a line
+	if (ord == 2){
+		if (dim == 1){			// 1-D on a line
 			if (Lid == 0)
 				Lu = cf*d2u;
 //			if (Lid == 1)
 		}
-		if (D == 2){			// 1-D w/azimuthal symmetry about x = 0
+		if (dim == 2){			// 1-D w/azimuthal symmetry about x = 0
 			if (Lid == 0)
 				Lu = cf*l2u;
 			if (Lid == 1)
@@ -95,13 +95,20 @@ void prbm_L(char LR, int Lid, int D, int o, int n, int m, int M, double h, doubl
 	/* FOURTH-ORDER SPATIAL OPERATORS
 	 *  Lid = 0 : capillary spreading
 	 *  Lid = 1 : gravity-capillary spreading
+	 *            [cf. Moriarty, Schwartz, and Tuck (1991)]
 	 *  Lid = 2 : penetration of rigid sphere through initially flat interface
 	 *  Lid = 3 : drainage of thin film over rigid sphere
 	 */
-	if (o == 4){
-//		if (D == 1){
-//		}
-		if (D == 2){			// 1-D w/azimuthal symmetry about x = 0
+	if (ord == 4){
+		if (dim == 1){
+			if (Lid == 1){	// 1-D on a line
+				double u2 = u[m]*u[m];
+				double u3 = u2*u[m];
+				Lu  = -u2*d1u;
+				Lu += -cf*(u2*d3u + u3*d4u/3.0);
+			}
+		}
+		if (dim == 2){			// 1-D w/azimuthal symmetry about x = 0
 //			if (Lid == 0)
 //			if (Lid == 1)
 			if (Lid == 2){
@@ -129,7 +136,7 @@ void prbm_L(char LR, int Lid, int D, int o, int n, int m, int M, double h, doubl
 	// NEED TO PASS INDICATOR FUNCTION FOR TYPE OF BCs AT EACH BOUNDARY
 	// NEED TO PASS INDICATOR FUNCTION FOR TYPE OF BCs AT EACH BOUNDARY
 	// NEED TO PASS INDICATOR FUNCTION FOR TYPE OF BCs AT EACH BOUNDARY
-	if (o > 1){
+	if (ord > 1){
 		if (LR == 'L' && (m == 0 || m == M-1)){
 			if (m == 0){
 				Lug = u[m];		// Dirichlet BC
@@ -147,7 +154,7 @@ void prbm_L(char LR, int Lid, int D, int o, int n, int m, int M, double h, doubl
 	// REVISE THIS LATER 
 	// REVISE THIS LATER 
 	// REVISE THIS LATER 
-	if (o == 4){ // REVISE LATER
+	if (ord == 4){ // REVISE LATER
 		if (LR == 'L' && (m == 1 || m == M-2)){
 			if (m == 1)
 				Lug = d3u;	// symmetry requirement
