@@ -23,14 +23,6 @@ int main(){
 	int i, j, k, l;
 	int m, n;
 	
-	// setup time and space domains
-	int N = 40;										// number of time points
-	int M = 100;									// number of grid points
-	double xmax = 1.0;
-	double tmax = 0.01;
-	double dx = xmax/double(M-1);
-	double dt = tmax/double(N-1);
-
 	// parameters
 	double p[10];						 	// parameters
 				 p[0] = 1.0;			 	// diffusion coefficient
@@ -46,6 +38,15 @@ int main(){
 	int dim = 1;						 	// dimensions in space
 	int var = 2;							// number of dependent variables
 	int ord = 4;							// order of spatial operator
+	
+	// setup time and space domains
+	int N = 4;										// number of time points
+	int M = 8;										// number of grid points (even)
+	double xmax = 4.0;
+	double tmax = 0.01;
+	double dx = xmax/double(M/var-1);
+	double dt = tmax/double(N-1);
+
 
 	// NUMBER OF VARIABLES = 1 (diffusion of one species)
 
@@ -109,13 +110,15 @@ void init(int Lid, int dim, int ord, int var, int M, double h, double *u0){
 						if      (m < M2){	// film thickness H(x,t)
 							m2 = m;
 							x  = m2*h;
-							H  = 1.0 - 2.0*(x - 0.5)*(x - 0.5);
+							if (x < 1) H  = 1.0 - 4.0*(x - 0.5)*(x - 0.5);
+							else       H  = 0.1;
 							u0[m] = H;
 						}
 						else            { // flux Q(x,t)
 							m2 = m - M2;
 							x  = m2*h;
-							H  = 1.0 - 2.0*(x - 0.5)*(x - 0.5);
+							if (x < 1) H  = 1.0 - 4.0*(x - 0.5)*(x - 0.5);
+							else       H  = 0.1;
 							double H2, H3, d3H;
 							H2 = H*H;
 							H3 = H2*H;

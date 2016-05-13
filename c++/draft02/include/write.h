@@ -53,13 +53,40 @@ void write(string dir, string fn, int var, int n, int M, double h, double k, dou
 	file.open(path.c_str());
 	file << params.str() << endl;
 	file << header.str() << endl;
-	for (m = 0; m < M; m++){
-		ostringstream xx, uu;
-		xx << fixed << setprecision(xacc) << setw(width) << m*h;
-		uu << fixed << setprecision(uacc) << setw(width) << uw[m];
-		
-		line = xx.str() + uu.str();
-		file << line << endl;
+	if (var == 1){
+		for (m = 0; m < M; m++){
+			ostringstream xx, uu;
+			xx << fixed << setprecision(xacc) << setw(width) << m*h;
+			uu << fixed << setprecision(uacc) << setw(width) << uw[m];
+			
+			line = xx.str() + uu.str();
+			file << line << endl;
+		}
+	}
+	else if (var == 2){
+		int M2 = M/var;	
+		for (m = 0; m < M2; m++){
+			ostringstream xx, u1, u2;
+			xx << fixed << setprecision(xacc) << setw(width) << m*h;
+			u1 << fixed << setprecision(uacc) << setw(width) << uw[m];
+			u2 << fixed << setprecision(uacc) << setw(width) << uw[m+M2];
+			
+			line = xx.str() + u1.str() + u2.str();
+			file << line << endl;
+		}
+	}
+	else if (var == 3){
+		int M3 = M/var;	
+		for (m = 0; m < M3; m++){
+			ostringstream xx, u1, u2, u3;
+			xx << fixed << setprecision(xacc) << setw(width) << m*h;
+			u1 << fixed << setprecision(uacc) << setw(width) << uw[m];
+			u2 << fixed << setprecision(uacc) << setw(width) << uw[m+M3];
+			u3 << fixed << setprecision(uacc) << setw(width) << uw[m+2*M3];
+			
+			line = xx.str() + u1.str() + u2.str() + u3.str();
+			file << line << endl;
+		}
 	}
 	file.close();
 

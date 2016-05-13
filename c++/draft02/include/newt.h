@@ -101,6 +101,9 @@ void newt_iter(bool sprs, int Lid, int dim, int ord, int var, int n, int M, doub
 		
 		//cout << "iter = " << iter << ", fnorm = " << Fnorm << ", p = " << nu << endl;
 		iter++;
+
+		// FOR DEBUGGING
+		if (iter > 1) break;
 	}
 
 	// store solution
@@ -121,11 +124,15 @@ void newt_d(bool sprs, int Lid, int dim, int ord, int var, int n, int M, double 
 
 	// copy F and DF to output
 	// (Fp will be transformed by LAPACK operations)
+	//FOR DEBUGGING
+	printf("DF = \n");
 	for (i = 0; i < M; i++){
 		F[i] = Fp[i];
 		for (j = 0; j < M; j++){
 			DF[i*M + j] = DFp[i*M + j];
+			printf("%.4f ",DF[i*M+j]);
 		}
+		printf("\n");
 	}
 
 	/* solve the linear system using Gaussian elimination 

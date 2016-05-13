@@ -160,18 +160,18 @@ void prbm_L(char LR, int Lid, int dim, int ord, int var, int n, int m, int M, do
 					}
 				}
 				else             {	// flux Q(x,t) (eq of motion + normal stress condition)
-					if (m == M2)  {				// Neumann condition on h at m2 = M2-1
+					if      (m == M2  ){				// Neumann condition on h at m2 = M2-1
 						diff_d1(M2-1, M2, h, H, d1H);
 						prbm_BC(LR, 'N', H[M2-1], d1H, Lug);
 					}
-					if (m == M2+1){				// Dirichlet  condition on q at m2 = 0
+					else if (m == M -1){				// Dirichlet  condition on q at m2 = 0
 						diff_d1(0, M2, h, Q, d1Q);
 						prbm_BC(LR, 'D', Q[0], d1Q, Lug); 
 					}
-					else          {
+					else               {
 						if      (LR == 'L'){
 							double H2, H3, d3H;
-							m2 = m - M2 - 1; 	// subtract 1 b/c we placed both BCs at top
+							m2 = m - M2    ; 	// subtract 1 b/c we placed both BCs at top
 							H2 = H[m2]*H[m2];
 							H3 = H[m2]*H3  ;
 							diff_d3(m2, M2, h, H, d3H);
