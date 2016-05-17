@@ -27,19 +27,19 @@
 using namespace std;
 
 /* PROTOTYPES */
-void newt_d   (bool, int, int, int, int, int, int, double, double, double *, double *, double *, double *, double *, double *);
-void newt_iter(bool, int, int, int, int, int, int, double, double, double *, double *, double *, double *);
+void newt_d   (int, int, int, int, int, double, double, double *, double *, double *, double *, double *, double *);
+void newt_iter(int, int, int, int, int, double, double, double *, double *, double *, double *);
 
 /* IMPLEMENTATIONS */
 
 // Iterate on u1 until F(u1;u0,p) = 0
 //  si = initial guess for u1
 //  sf = final output for u1 after Newton iteration
-void newt_iter(bool sprs, int Lid, int dim, int ord, int var, int n, int M, double h, double k, double *p, double *u0, double *si, double *sf){
+void newt_iter(int sprs, int dim, int var, int n, int M, double h, double k, double *p, double *u0, double *si, double *sf){
 	int    i, j, m;
-	int vM = var*M;		// size of system
-	double u1 [M], F [M], DF[M*M], d[M];
-	double u1p[M], Fp[M];
+	int Mv = var*M;		// size of system
+	double u1 [Mv], F [Mv], DF[Mv*Mv], d[Mv];
+	double u1p[Mv], Fp[Mv];
 
 	const int MAXITER  = 1000;
 	const double FTOL  = 1e-6;
@@ -52,7 +52,7 @@ void newt_iter(bool sprs, int Lid, int dim, int ord, int var, int n, int M, doub
 	double dnorm  = 1.0;		// 2-norm of d
 	double nu     = 1.0;		// fraction of full Newton step
 
-	for (m = 0; m < M; m++){
+	for (m = 0; m < Mv; m++){
 		u1[m] = si[m];
 	}
 
@@ -60,12 +60,12 @@ void newt_iter(bool sprs, int Lid, int dim, int ord, int var, int n, int M, doub
 	while (iter < MAXITER && Fnorm > FTOL && dnorm > DTOL){
 		// generate F and DF and
 		// solve the linearized system DF*d = F for d
-		newt_d(sprs, Lid, dim, ord, var, n, M, h, k, p, u0, u1, F, DF, d);
+		newt_d(sprs, dim, var, n, M, h, k, p, u0, u1, F, DF, d);
 
 		// calculate 2-norm of F and d
 		Fnorm = 0.0;
 		dnorm = 0.0;
-		for (m = 0; m < M; m++){
+		for (m = 0; m < Mv; m++){
 			Fnorm += F[m]*F[m];
 			dnorm += d[m]*d[m];
 		}
@@ -78,15 +78,15 @@ void newt_iter(bool sprs, int Lid, int dim, int ord, int var, int n, int M, doub
 			nu = pow(2.0, -i);
 			
 			// take fraction of the full Newton step 
-			for (m = 0; m < M; m++){
+			for (m = 0; m < Mv; m++){
 				u1p[m] = u1[m] - nu*d[m];
 			}
 			
 			// recalculate Fp using u1p
-			syst_F(Lid, dim, ord, var, n, M, h, k, p, u0, u1p, Fp);
+			syst_F(dim, var, n, M, h, k, p, u0, u1p, Fp);
 			
 			Fpnorm = 0;
-			for (m = 0; m < M; m++)
+			for (m = 0; m < Mv; m++)
 				Fpnorm += Fp[m]*Fp[m];
 			Fpnorm = sqrt(Fpnorm);
 			
@@ -96,69 +96,70 @@ void newt_iter(bool sprs, int Lid, int dim, int ord, int var, int n, int M, doub
 
 
 		// update u1
-		for (m = 0; m < M; m++)
+		for (m = 0; m < Mv; m++)
 			u1[m] = u1p[m];
 		
 		//cout << "iter = " << iter << ", fnorm = " << Fnorm << ", p = " << nu << endl;
 		iter++;
 
-	//	// FOR DEBUGGING
-	//	if (iter > 1) break;
+		// FOR DEBUGGING
+		if (iter > 1) break;
 	}
 
 	// store solution
-	for (m = 0; m < M; m++){
+	for (m = 0; m < Mv; m++){
 		sf[m] = u1[m];
 	}
 }
 
 
 // Compute the full Newton step d, where DF*d = F
-void newt_d(bool sprs, int Lid, int dim, int ord, int var, int n, int M, double h, double k, double *p, double *u0, double *u1, double *F, double *DF, double *d){
+void newt_d(int sprs, int dim, int var, int n, int M, double h, double k, double *p, double *u0, double *u1, double *F, double *DF, double *d){
 	int i, j, info;
-	int vM = var*M;
-	double Fp[M], DFp[M*M];
+	int Mv = var*M;
+	double Fp[Mv], DFp[Mv*Mv];
 	
 	// given u0 and u1, generate F (function) and DF (Jacobian)
-	syst_F_DF(sprs, Lid, dim, ord, var, n, M, h, k, p, u0, u1, Fp, DFp);
+	syst_F_DF(sprs, dim, var, n, M, h, k, p, u0, u1, Fp, DFp);
 
 	// copy F and DF to output
 	// (Fp will be transformed by LAPACK operations)
 	//FOR DEBUGGING
-	//printf("DF = \n");
-	for (i = 0; i < M; i++){
+	printf("DF = \n");
+	for (i = 0; i < Mv; i++){
 		F[i] = Fp[i];
-		for (j = 0; j < M; j++){
-			DF[i*M + j] = DFp[i*M + j];
-		//	printf("%.4f ",DF[i*M+j]);
+		for (j = 0; j < Mv; j++){
+			DF[i*Mv + j] = DFp[i*Mv + j];
+			if (fabs(DF[i*Mv + j]) > 10)
+				printf("%.4f ",DF[i*Mv+j]);
 		}
-		//printf("\n");
+		printf("\n");
 	}
 
 	/* solve the linear system using Gaussian elimination 
 	 * (LAPACK's DGETRF and DGETRS subroutines) */
 	char   trans = 'N';				// form of the system of equations
-	int    ldDF  =  M;				// leading dimension of DF
+	int    ldDF  =  Mv;				// leading dimension of DF
 	int    ldF   =  1;				// leading dimension of F
 	int    nrhs  =  1;				// number of right-hand sides
-	int    ipiv[M];		 				// array of pivot indices
+	int    ipiv[Mv];	 				// array of pivot indices
 
 	// factorize
-	info = LAPACKE_dgetrf(LAPACK_ROW_MAJOR, M, M, DFp, ldDF, ipiv);
+	info = LAPACKE_dgetrf(LAPACK_ROW_MAJOR, Mv, Mv, DFp, ldDF, ipiv);
 	if (info != 0){
 		cout << "Error: dgetrf did not return successfully." << endl;
 		return;
 	}
 
 	// solve
-	info = LAPACKE_dgetrs(LAPACK_ROW_MAJOR, trans, M, nrhs, DFp, ldDF, ipiv, Fp, ldF);
+	info = LAPACKE_dgetrs(LAPACK_ROW_MAJOR, trans, Mv, nrhs, DFp, ldDF, ipiv, Fp, ldF);
 	if (info != 0){
 		cout << "Error: dgetrs did not return successfully." << endl;
 		return;
 	}
 	
 	// store solution
-	for (i = 0; i < M; i++){
+	for (i = 0; i < Mv; i++){
 		d[i] = Fp[i];
 	}
 

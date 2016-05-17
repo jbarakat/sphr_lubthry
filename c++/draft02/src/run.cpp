@@ -27,10 +27,9 @@ int main(){
 	double p[10];						 	// parameters
 				 p[0] = 1.0;			 	// diffusion coefficient
 				 p[1] = 1.0;				// concavity coefficient (for lub thry on curved surface)
-	bool sprs = true;					// sparsity indicator
+	bool sprs = false;					// sparsity indicator
 	string dir = "../output";	// output directory
 	string fn = "data";				// output file name
-	int nw = 4 ;							// number of timesteps to write
 
 	// CHANGE THE PROBLEM TYPE... NEED TO BE MORE CAREFUL
 	// WHEN I GET TO THE REAL PROBLEM...
@@ -40,10 +39,11 @@ int main(){
 	int ord = 4;							// order of spatial operator
 	
 	// setup time and space domains
-	int N = 4;										// number of time points
-	int M = 8;										// number of grid points (even)
+	int N = 100;										// number of time points
+	int nw = 10;							// number of timesteps to write
+	int M = 400;										// number of grid points (even)
 	double xmax = 4.0;
-	double tmax = 0.01;
+	double tmax = 1.0;
 	double dx = xmax/double(M/var-1);
 	double dt = tmax/double(N-1);
 
