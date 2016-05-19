@@ -12,7 +12,7 @@ def readFiles(path) :
 	if nfiles > 0 :
 		for f in files :
 			x,u = np.loadtxt(f, unpack=True,skiprows=2)
-			plt.plot(x,u)
+			plt.plot(x,u,'--.')
 		plt.show()
 	
 #	if nfiles > 0 :

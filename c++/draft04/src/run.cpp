@@ -21,7 +21,7 @@ void init(int, double, double *, double *);
 
 int main(){
 	// system parameters
-	double B  = 100.0;	// Bond number
+	double B  = 1000.0;	// Bond number
 	double U0 = 0.0;		// left boundary value
 	double U1 = 0.001;		// right boundary value
 	
@@ -31,20 +31,17 @@ int main(){
 	p[2] = U1;
 
 	// time and space discretization
-	int N = 500;
-	int J = 200;
-	double xmax = 2.0;
-	double tmax = 10.0;
+	int N = 21;
+	int J = 50;
+	double xmax = 5.0;
+	double tmax = 1.0;
 	double dx = xmax/double(J);
 	double dt = tmax/double(N);
-
-//	dx = 0.005;
-//	dt = dx/B;
 
 	// write parameters
 	string dir = "../output";	// output directory
 	string fn = "data";				// output file name
-	int nw = 3;								// number of timesteps to write
+	int nw = 20;								// number of timesteps to write
 
 	// solution vector
 	double u0[J+2];

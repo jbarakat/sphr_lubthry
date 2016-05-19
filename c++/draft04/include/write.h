@@ -21,13 +21,13 @@
 using namespace std;
 
 /* PROTOTYPES */
-void write(string, string, int, int, double, double, double *);
-void write(string, string, int, int, int, double, double, double *);
+void writeFile(string, string, int, int, int, double, double, double *);
+void write    (string, string, int, int, int, double, double, double *);
 
 /* IMPLEMENTATIONS */
 
 // Write output to file.
-void write(string dir, string fn, int n, int J, double dt, double dx, double *uw){
+void writeFile(string dir, string fn, int ctr, int n, int J, double dt, double dx, double *uw){
 	int j;
 	int width = 12;
 	int tacc = 4;
@@ -43,7 +43,7 @@ void write(string dir, string fn, int n, int J, double dt, double dx, double *uw
 
 	// setup: assign strings and stringstreams
 	time << fixed << setprecision(tacc) << double(n)*dt;
-	ts << setfill('0') << setw(fill) << n;
+	ts << setfill('0') << setw(fill) << ctr;
 	params << "t = " << time.str();
 	cout << params.str() << endl;
 	header << setw(width) << col1 << setw(width) << col2;
@@ -70,12 +70,14 @@ void write(string dir, string fn, int nw, int N, int J, double dt, double dx, do
 	int n, j;
 	double uw[J+2];
 	int m = N/nw;
+	int ctr = 0;
 
 	for (n = 0; n < N+1; n++){
 		if (n % m == 0){
+			ctr++;
 			for (j = 0; j < J+2; j++)
 				uw[j] = u[n*(J+2) + j];
-			write(dir, fn, n, J, dt, dx, uw);
+			writeFile(dir, fn, ctr, n, J, dt, dx, uw);
 		}
 		else
 			continue;

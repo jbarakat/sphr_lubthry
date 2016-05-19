@@ -96,13 +96,18 @@ void solve_tstep(int J, double dt, double dx, double *p, double *u0, double *u1)
 	solve_coeffs(J,     dt, dx, p, v0, v1, a, b, c, d, e, f);
 	lalg_pent   (R, a, b, c, d, e, f, v1);
 	
+	// no predictor-corrector: just time advance using previous coefficients
+	solve_coeffs(J,     dt, dx, p, v0, v0, a, b, c, d, e, f);
+	lalg_pent   (R, a, b, c, d, e, f, v1);
+	
 	// copy solution
 	for (j = 1; j < J; j++){
 		i = j-1;
 		u1[j] = v1[i];
 	}
-	u1[0] = U0;
-	u1[J] = U1;
+	u1[0  ] = -u1[1];
+	u1[J  ] =  U1;
+	u1[J+1] =  u1[J]; // extra entry b/c u is shifted 1/2 step
 }
 
 // compute pentadiagonal coefficients
