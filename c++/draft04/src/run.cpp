@@ -31,14 +31,15 @@ int main(){
 	p[2] = U1;
 
 	// time and space discretization
-	int N = 1000000;
-	int J = 2000;
+	int N = 500;
+	int J = 200;
 	double xmax = 2.0;
-	double tmax = 40.0;
+	double tmax = 10.0;
 	double dx = xmax/double(J);
 	double dt = tmax/double(N);
-	dx = 0.001;
-	dt = dx/B;
+
+//	dx = 0.005;
+//	dt = dx/B;
 
 	// write parameters
 	string dir = "../output";	// output directory

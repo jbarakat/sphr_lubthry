@@ -60,7 +60,7 @@ void solve_tevol(int N, int J, double dt, double dx, double *p, double *u0, vect
 
 	// time evolution
 	for (n = 0; n < N+1; n++){	
-		cout << "ts = " << n << " / " << N << endl;
+		cout << "ts = " << n << " / " << N << ", dt/dx = " << dt/dx << endl;
 		for (j = 0; j < J+2; j++)
 			u.push_back(v0[j]);
 
