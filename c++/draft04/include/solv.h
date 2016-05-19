@@ -4,11 +4,23 @@
  * REFERENCES
  *  Lopez et al, J Coll Int Sci (1976) - gravitational spreading
  *  Moriarty, Tuck, and Schwartz, Phys Fluids A (1991) - gravitational thinning w/surface tension
+ *  von Rosenberg, Methods for the Numerical Solution of PDEs (1969)
  *  
  * PARAMETERS
- *  M		[input]			number of grid points
+ *  J		[input]			number of grid points
  *  p		[input]			parameters
  *  u		[input]			solution vector
+ */
+
+/* The following problem is adapted from Moriarty, Tuck, and Schwartz, Physics
+ * of Fluids A (1991). The differential system is
+ *   u_t = - q_x,
+ *     q = (u^3/3)*(1 + (1/B)*u_xxx)
+ * where u is the film thickness, q is the flux, B is the Bond number.
+ * 
+ * NOTE: The independent variable u is shifted 1/2 step from the nodal points,
+ *       so that u_{j+1/2,n} = u(x_{j}, t_{n}). There are J+1 nodal points x_{j}
+ *       where j = 0, 1, ..., J-1, J.
  */
 
 #ifndef SOLV_H
@@ -27,121 +39,154 @@
 using namespace std;
 
 /* PROTOTYPES */
+void solv_tstep (int, double, double, double *, double *, double *);
+void solv_coeffs(int, double, double, double *, double *, double *,
+                  double *, double *, double *, double *, double *, double *);
 
 /* IMPLEMENTATIONS */
 
 // prediction
-void solv_pred(int M, double dx, double dt, double *p, double *u0, double *u1){
-	int    i, j;
-	int    R = M-2; // system size
-	double a0[R], b0[R], c0[R], d0[R], e0[R], f0[R];
-	double a [R], b [R], c [R], d [R], e [R], f [R];
-	double k0[R], k[R];
-	double v0[R], v[R];
-	double dv;
-	double tol = 1e-6;
-
-	// parameters
-	double B   = p[0];	// Bond number
-	double U   = p[1];	// far-field thickness
-	double cf1 = 0.25*dt/dx;
-	double cf2 = cf1/(B*dx*dx*dx);
+void solv_tstep(int J, double dt, double dx, double *p, double *u0, double *u1){
+	int i, j;
+	int R = J - 2; // system size
+	double v0[R], v1[R];
+	double a[R], b[R], c[R], d[R], e[R], f[R];
 
 	// initialize
-	for (i = 0; i < R; i++){
-		v0[i] = u0[i];
-		k0[i] = pow(0.5*(u0[i] + u0[i+1]),3)/3.0;
+	for (j = 1; j < J-1; j++){
+		i = j-1;
+		v0[i] = u0[j];
 	}
-	k0[R-1] = pow(0.5*(u0[i] + U),3)/3.0;
+	
+	// prediction: project v0 onto intermediate time point to get v1
+	solv_coeffs(J, 0.5*dt, dx, p, v0, v0, a, b, c, d, e, f);
+	lalg_pent  (R, a, b, c, d, e, f, v1);
 
-	a0[0] = 0.0;
-	b0[0] = 0.0;
-	c0[0] = 
-	d0[0] = 
-	e0[0] = 
-	f0[0] = 
-
-	a0[1] = 0.0;
-	b0[1] = 
-	c0[1] = 
-	d0[1] = 
-	e0[1] = 
-	f0[1] = 
-
-	for (i = 2; i < R-2; i++){
-		a0[i] =       cf2*     k0[i-1]             ;
-		b0[i] =     - cf2*(3.0*k0[i-1] +     k0[i]);
-		c0[i] = 1.0 - cf2*(3.0*k0[i-1] + 3.0*k0[i]);
-		d0[i] =     - cf2*(    k0[i-1] + 3.0*k0[i]);
-		e0[i] =       cf2*                   k0[i] ;
-		f0[i] = 
+	// correction: correct v1 by taking the full time step
+	solv_coeffs(J,     dt, dx, p, v0, v1, a, b, c, d, e, f);
+	lalg_pent  (R, a, b, c, d, e, f, v1)
+	
+	// copy solution
+	for (j = 1; j < J-1; j++){
+		i = j-1;
+		u1[j] = v0[i];
 	}
-
-	a0[R-2] = 
-	b0[R-2] = 
-	c0[R-2] = 
-	d0[R-2] = 
-	e0[R-2] = 0.0;
-	f0[R-2] = 
-	
-	a0[R-1] = 
-	b0[R-1] = 
-	c0[R-1] = 
-	d0[R-1] = 0.0;
-	e0[R-1] = 0.0;
-	f0[R-1] = 
-	
-	// iterate
-	for (i = 0; i < R-1; i++)
-		k[i] = pow(0.25*(u0[i  ] + v0[i  ] + u0[i+1] + v0[i+1]),3)/3.0;
-	k[R-1] = pow(0.25*(u0[R-1] + v0[R-1] + 2.0*U),3)/3.0;
-
-	// compute coefficients for pentadiagonal system
-	a[0]   = 0.0               ;
-	b[0]   = 0.0               ;
-	c[0]   = 1.0 + 4.0*cf2*k[0];
-	d[0]   =     - 3.0*cf2*k[0];
-	e[0]   =           cf2*k[0]; 
-	f[0]   = 
-
-	a[1]   = 0.0                            ;
-	b[1]   =     - cf2*(3.0*k[0] +     k[1]);
-	c[1]   = 1.0 + cf2*(3.0*k[0] + 3.0*k[1]);
-	d[1]   =     - cf2*(    k[0] + 3.0*k[1]);
-	e[1]   =       cf2*                k[1] ;
-	f[1]   = 
-
-	for (i = 2; i < R-2; i++){
-		a[i] =       cf2*     k[i-1]            ;
-		b[i] =     - cf2*(3.0*k[i-1] +     k[i]);
-		c[i] = 1.0 + cf2*(3.0*k[i-1] + 3.0*k[i]);
-		d[i] =     - cf2*(    k[i-1] + 3.0*k[i]);
-		e[i] =       cf2*                  k[i] ;
-		f[i] = 
-	}
-
-	a[R-2] =       cf2*     k[R-3]              ;
-	b[R-2] =     - cf2*(3.0*k[R-3] +     k[R-2]);
-	c[R-2] = 1.0 + cf2*(3.0*k[R-3] + 3.0*k[R-2]);
-	d[R-2] =     - cf2*(    k[R-3] + 3.0*k[R-2]);
-	e[R-2] = 0.0                                ;
-	f[R-2] = 
-	
-	a[R-1] =       cf2*     k[R-2]              ;
-	b[R-1] =     - cf2*(3.0*k[R-2] +     k[R-1]);
-	c[R-1] = 1.0 + cf2*(3.0*k[R-2] + 3.0*k[R-1]);
-	d[R-1] = 0.0                                ;
-	e[R-1] = 0.0                                ;
-	f[R-1] = 
-
-	// solve the pentadiagonal system for v
-
-	// compute norm of difference ||v - v0||
-	
+	u[0  ] = U0;
+	u[J-1] = U1;
+	u[J  ] = U1;	// extra value b/c function was shifted 1/2 step
 }
 
-// correction
-void solv_corr(){
+// compute pentadiagonal coefficients
+void solv_coeffs(int J, double dt, double dx, double *p, double *u0, double *v,
+                 double *a, double *b, double *c, double *d, double *e, double *f){
+	int i, j;
+	int R = J - 2; // system size
+
+	// parameters
+	double B  = p[0];		// Bond number
+	double U0 = p[1];		// left boundary value
+	double U1 = p[2];		// right boundary value
+	
+	// setup
+	double cf1 = dt/dx;
+	double cf2 = 1.0/(B*dx*dx*dx);
+	double g[R], g1, g2;
+	double A, B, C, D, E, F;
+	for (i = 0; i < R-1; i++)
+		g[i] = (cf1/3.0)*pow((v[i] + v[i+1])/2.0,3);
+	g[R-1] = (cf1/3.0)*pow((v[R-1] + U1)/2.0,3);
+
+	// compute coefficients for the particular problem
+	/*---------------*/
+	j = 1  ; i = j-1;
+	g1   = 0.0;
+	g2   = cf2*g[i  ];
+	
+	C    =            4.0*g2 ;
+	D    = -          3.0*g2 ;
+	E    =                g2 ;
+	F    = g[i]              ;
+
+	a[i] = 0.0;
+	b[i] = 0.0;
+	c[i] = 1.0 + C;
+	d[i] = D;
+	e[i] = E;
+	f[i] = (1.0 - C)*u0[j] - D*u0[j+1] - E*u0[j+2] - F;
+
+	/*---------------*/
+	j = 2  ; i = j-1;
+	g1 = cf2*g[i-1];
+	g2 = cf2*g[i  ];
+
+	B    = -(4.0*g1 +     g2);
+	C    =  (3.0*g1 + 3.0*g2);
+	D    = -(    g1 + 3.0*g2);
+	E    =                g2 ;
+	F    = g[i] - g[i-1]     ;
+
+	a[i] = 0.0;
+	b[i] = B;
+	c[i] = 1.0 + C;
+	d[i] = D;
+	e[i] = E;
+	f[i] = -B*u0[j-1] + (1.0 - C)*u0[j] - D*u0[j+1] - E*u0[j+2] - F;
+
+	/*---------------*/
+	for (j = 3; j < J-3; j++){
+		i = j-1;
+		g1 = cf2*g[i-1];
+		g2 = cf2*g[i  ];
+
+		A    =       g1          ;
+		B    = -(3.0*g1 +     g2);
+		C    =  (3.0*g1 + 3.0*g2);
+		D    = -(    g1 + 3.0*g2);
+		E    =                g2 ;
+		F    = g[i] - g[i-1]     ;
+
+		a[i] = A;
+		b[i] = B;
+		c[i] = 1.0 + C;
+		d[i] = D;
+		e[i] = E;
+		f[i] = -A*u0[j-2] - B*u0[j-1] + (1.0 - C)*u0[j] - D*u0[j+1] - E*u0[j+2] - F
+	}
+	
+	/*---------------*/
+	j = J-2; i = j-1;
+	g1 = cf2*g[i-1];
+	g2 = cf2*g[i  ];
+
+	A    =       g1          ;
+	B    = -(3.0*g1 +     g2);
+	C    =  (3.0*g1 + 3.0*g2);
+	D    = -(    g1 + 3.0*g2);
+	F    = g[i] - g[i-1] + 2.0*U1;
+
+	a[i] = A;
+	b[i] = B;
+	c[i] = 1.0 + C;
+	d[i] = D;
+	e[i] = 0.0;
+	f[i] = -A*u0[j-2] - B*u0[j-1] + (1.0 - C)*u0[j] - D*u0[j+1] - F;
+
+	/*---------------*/
+	j = J-1; i = j-1;
+	g1 = cf2*g[i-1];
+	g2 = cf2*g[i  ];
+
+	A    =       g1          ;
+	B    = -(3.0*g1 +     g2);
+	C    =  (3.0*g1 + 3.0*g2);
+	F    = g[i] - g[i-1] + 2.0*U1 - 2.0*(g1 + 2.0*g2);
+
+	a[i] = A;
+	b[i] = B;
+	c[i] = 1.0 + C;
+	d[i] = 0.0;
+	e[i] = 0.0;
+	f[i] = -A*u0[j-2] - B*u0[j-1] + (1.0 - C)*u0[j] - F;
 }
 
 
