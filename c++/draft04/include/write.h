@@ -21,14 +21,14 @@
 using namespace std;
 
 /* PROTOTYPES */
+void write(string, string, int, int, double, double, double *);
 void write(string, string, int, int, int, double, double, double *);
-void write(string, string, int, int, int, int, double, double, double *);
 
 /* IMPLEMENTATIONS */
 
 // Write output to file.
-void write(string dir, string fn, int var, int n, int M, double h, double k, double *uw){
-	int m, v;
+void write(string dir, string fn, int n, int J, double dt, double dx, double *uw){
+	int j;
 	int width = 12;
 	int tacc = 4;
 	int xacc = 4;
@@ -42,7 +42,7 @@ void write(string dir, string fn, int var, int n, int M, double h, double k, dou
 	string line, path;
 
 	// setup: assign strings and stringstreams
-	time << fixed << setprecision(tacc) << n*k;
+	time << fixed << setprecision(tacc) << double(n)*dt;
 	ts << setfill('0') << setw(fill) << n;
 	params << "t = " << time.str();
 	cout << params.str() << endl;
@@ -53,16 +53,11 @@ void write(string dir, string fn, int var, int n, int M, double h, double k, dou
 	file.open(path.c_str());
 	file << params.str() << endl;
 	file << header.str() << endl;
-	for (m = 0; m < M; m++){
-		ostringstream xx;
-		xx << fixed << setprecision(xacc) << setw(width) << m*h;
-		line = xx.str();
-
-		for (v = 0; v < var; v++){
-			ostringstream uu;
-			uu << fixed << setprecision(uacc) << setw(width) << uw[var*m+v];
-			line += uu.str();
-		}
+	for (j = 0; j < J+1; j++){
+		ostringstream xx, uu;
+		xx << fixed << setprecision(xacc) << setw(width) << (double(j) - 0.5)*dx;
+		uu << fixed << setprecision(uacc) << setw(width) << uw[j];
+		line = xx.str() + uu.str();
 
 		file << line << endl;
 	}
@@ -71,16 +66,16 @@ void write(string dir, string fn, int var, int n, int M, double h, double k, dou
 	cout << "Output written to " << path << "." << endl;
 }
 
-void write(string dir, string fn, int nw, int var, int N, int M, double h, double k, double *u){
-	int n, m;
-	int Mv = var*M;
-	double uw[Mv];
+void write(string dir, string fn, int nw, int N, int J, double dt, double dx, double *u){
+	int n, j;
+	double uw[J+2];
+	int m = N/nw;
 
-	for (n = 0; n < N; n++){
-		if (n % nw == 0){
-			for (m = 0; m < Mv; m++)
-				uw[m] = u[n*Mv + m];
-			write(dir, fn, var, n, M, h, k, uw);
+	for (n = 0; n < N+1; n++){
+		if (n % m == 0){
+			for (j = 0; j < J+2; j++)
+				uw[j] = u[n*(J+2) + j];
+			write(dir, fn, n, J, dt, dx, uw);
 		}
 		else
 			continue;

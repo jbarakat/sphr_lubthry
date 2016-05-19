@@ -11,9 +11,15 @@ def readFiles(path) :
 
 	if nfiles > 0 :
 		for f in files :
-			x,u,v = np.loadtxt(f, unpack=True,skiprows=2)
+			x,u = np.loadtxt(f, unpack=True,skiprows=2)
 			plt.plot(x,u)
 		plt.show()
+	
+#	if nfiles > 0 :
+#		f = files[-1]
+#		x,u = np.loadtxt(f, unpack=True,skiprows=2)
+#		plt.plot(x,u)
+#		plt.show()
 
 path = "../output/*"
 readFiles(path)
